@@ -61,13 +61,13 @@ func main() {
 		logger.WithError(err).Fatal("could not create dqueue for userOnboarding")
 	}
 
-	userFollowerQueue, err := queue.NewDQueue(
-		"userFollower.queue",
+	userFolloweeQueue, err := queue.NewDQueue(
+		"userFollowee.queue",
 		cfg.QueueStoreDir,
-		&model.UserFollowerTask{},
+		&model.UserFolloweeTask{},
 	)
 	if err != nil {
-		logger.WithError(err).Fatal("could not create dqueue for userFollower")
+		logger.WithError(err).Fatal("could not create dqueue for userFollowee")
 	}
 
 	userQueue, err := queue.NewDQueue(
@@ -113,7 +113,7 @@ func main() {
 		neo,
 		prv,
 		userOnboardingQueue,
-		userFollowerQueue,
+		userFolloweeQueue,
 		userQueue,
 		repositoryQueue,
 	)

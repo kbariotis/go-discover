@@ -21,7 +21,7 @@ type Crawler struct {
 	provider provider.Provider
 
 	userOnboardingQueue queue.Queue
-	userFollowerQueue   queue.Queue
+	userFolloweeQueue   queue.Queue
 	userQueue           queue.Queue
 	repositoryQueue     queue.Queue
 }
@@ -32,7 +32,7 @@ func New(
 	store store.Store,
 	provider provider.Provider,
 	userOnboardingQueue queue.Queue,
-	userFollowerQueue queue.Queue,
+	userFolloweeQueue queue.Queue,
 	userQueue queue.Queue,
 	repositoryQueue queue.Queue,
 ) (*Crawler, error) {
@@ -42,7 +42,7 @@ func New(
 		provider:             provider,
 		followerPollInterval: followerPollInterval,
 		userOnboardingQueue:  userOnboardingQueue,
-		userFollowerQueue:    userFollowerQueue,
+		userFolloweeQueue:    userFolloweeQueue,
 		userQueue:            userQueue,
 		repositoryQueue:      repositoryQueue,
 	}
@@ -71,11 +71,11 @@ func (c *Crawler) processOwnFollowers() error {
 			WithField("follower", follower).
 			Debug("got follower, pushing to userOnboardingQueue")
 
-		followerTask := &model.UserOnboardingTask{
+		userOnboardingTask := &model.UserOnboardingTask{
 			Name: follower,
 		}
 
-		if err := c.userOnboardingQueue.Push(followerTask); err != nil {
+		if err := c.userOnboardingQueue.Push(userOnboardingTask); err != nil {
 			return errors.Wrap(err, "could not add follower task to queue")
 		}
 	}
@@ -95,47 +95,66 @@ func (c *Crawler) handleUserOnboardingTask(task *model.UserOnboardingTask) error
 
 	// TODO check if we've already processed this user in last n hours
 
-	logger.Info("listing user's followers")
-
-	// follow back user
-	if err := c.provider.FollowUser(ctx, task.Name); err != nil {
-		// TODO return errors.Wrap(err, "could not follow back user")
+	// process the Bot's follower
+	followeeTask := &model.UserFolloweeTask{
+		Name: task.Name,
 	}
 
-	// get user's followers and push them to the userFollower queue
-	followers, err := c.provider.GetUserFollowers(ctx, task.Name)
+	if err := c.userFolloweeQueue.Push(followeeTask); err != nil {
+		return errors.Wrap(err, "could not add followee task to queue")
+	}
+
+	logger.Info("listing user's followees")
+
+	// get user's followees and push them to the userFollowee queue
+	followees, err := c.provider.GetUserFollowees(ctx, task.Name)
 	if err != nil {
-		return errors.Wrap(err, "could not retrieve own followers")
+		return errors.Wrap(err, "could not retrieve own followees")
 	}
 
-	for _, follower := range followers {
+	for _, followee := range followees {
 		logger.
-			WithField("follower", follower).
-			Debug("got follower, pushing to handleUserFollowerTask")
+			WithField("followee", followee).
+			Debug("got followee, pushing to handleUserFolloweeTask")
 
-		followerTask := &model.UserFollowerTask{
-			Name: follower,
+		followeeTask := &model.UserFolloweeTask{
+			Name: followee,
 		}
 
-		if err := c.userFollowerQueue.Push(followerTask); err != nil {
-			return errors.Wrap(err, "could not add follower task to queue")
+		if err := c.userFolloweeQueue.Push(followeeTask); err != nil {
+			return errors.Wrap(err, "could not add followee task to queue")
 		}
+	}
+
+	// upsert the user to the c.store
+	user := &model.User{
+		Name:      task.Name,
+		Followees: followees,
+	}
+
+	if err := c.store.PutUser(user); err != nil {
+		return errors.Wrap(err, "could not persist user")
 	}
 
 	return nil
 }
 
-func (c *Crawler) handleUserFollowerTask(task *model.UserFollowerTask) error {
+func (c *Crawler) handleUserFolloweeTask(task *model.UserFolloweeTask) error {
 	ctx := context.Background()
 
 	logger := logrus.WithFields(logrus.Fields{
-		"logger": "crawler/Github.handleUserFollowerTask",
+		"logger": "crawler/Github.handleUserFolloweeTask",
 		"task":   task,
 	})
 
-	logger.Info("handling model.UserFollowerTask")
+	logger.Info("handling model.UserFolloweeTask")
 
 	// TODO check if we've already processed this user in last n hours
+
+	// follow back user
+	if err := c.provider.FollowUser(ctx, task.Name); err != nil {
+		// TODO return errors.Wrap(err, "could not follow back user")
+	}
 
 	// fetch user's starred repos
 	stars, err := c.provider.GetUserStars(ctx, task.Name)
@@ -143,19 +162,12 @@ func (c *Crawler) handleUserFollowerTask(task *model.UserFollowerTask) error {
 		return errors.Wrap(err, "could not get user's stars")
 	}
 
-	// fetch user's followees
-	followees, err := c.provider.GetUserFollowees(ctx, task.Name)
-	if err != nil {
-		return errors.Wrap(err, "could not get user's followees")
-	}
-
 	// TODO fetch user's repositories
 
 	// upsert the user to the c.store
 	user := &model.User{
-		Name:      task.Name,
-		Stars:     stars,
-		Followees: followees,
+		Name:  task.Name,
+		Stars: stars,
 	}
 
 	if err := c.store.PutUser(user); err != nil {
@@ -199,7 +211,7 @@ func (c *Crawler) Start(ctx context.Context) error {
 	})
 
 	userOnboardingTasks := make(chan *model.UserOnboardingTask, 10000)
-	userFollowerTasks := make(chan *model.UserFollowerTask, 10000)
+	userFolloweeTasks := make(chan *model.UserFolloweeTask, 10000)
 	userTasks := make(chan *model.UserTask, 10000)
 	repositoryTasks := make(chan *model.RepositoryTask, 10000)
 
@@ -218,17 +230,17 @@ func (c *Crawler) Start(ctx context.Context) error {
 		}
 	}()
 
-	// pop tasks from userFollowerQueue and push them to a local channel
+	// pop tasks from userFolloweeQueue and push them to a local channel
 	go func() {
-		logger.Info("starting to pop tasks from userFollowerQueue")
+		logger.Info("starting to pop tasks from userFolloweeQueue")
 		for {
-			task, _ := c.userFollowerQueue.Pop() // TODO handle error
+			task, _ := c.userFolloweeQueue.Pop() // TODO handle error
 			if task == nil {
 				time.Sleep(time.Second)
 				continue
 			}
-			if okTask, ok := task.(*model.UserFollowerTask); ok {
-				userFollowerTasks <- okTask
+			if okTask, ok := task.(*model.UserFolloweeTask); ok {
+				userFolloweeTasks <- okTask
 			}
 		}
 	}()
@@ -287,9 +299,9 @@ func (c *Crawler) Start(ctx context.Context) error {
 				logger.WithError(err).Warn("failed to handle model.UserOnboardingTask")
 			}
 
-		case task := <-userFollowerTasks:
-			if err := c.handleUserFollowerTask(task); err != nil {
-				logger.WithError(err).Warn("failed to handle model.UserFollowerTask")
+		case task := <-userFolloweeTasks:
+			if err := c.handleUserFolloweeTask(task); err != nil {
+				logger.WithError(err).Warn("failed to handle model.UserFolloweeTask")
 			}
 
 		case task := <-userTasks:

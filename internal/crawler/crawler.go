@@ -274,32 +274,32 @@ func (c *Crawler) Start(ctx context.Context) error {
 
 		case <-followerPollFirstPoll:
 			if err := c.processOwnFollowers(); err != nil {
-				return errors.Wrap(err, "first time processOwnFollowers failed")
+				logger.WithError(err).Warn("first time processOwnFollowers failed")
 			}
 
 		case <-followerPollTicker.C:
 			if err := c.processOwnFollowers(); err != nil {
-				return errors.Wrap(err, "processOwnFollowers failed")
+				logger.WithError(err).Warn("processOwnFollowers failed")
 			}
 
 		case task := <-userOnboardingTasks:
 			if err := c.handleUserOnboardingTask(task); err != nil {
-				return errors.Wrap(err, "failed to handle model.UserOnboardingTask")
+				logger.WithError(err).Warn("failed to handle model.UserOnboardingTask")
 			}
 
 		case task := <-userFollowerTasks:
 			if err := c.handleUserFollowerTask(task); err != nil {
-				return errors.Wrap(err, "failed to handle model.UserFollowerTask")
+				logger.WithError(err).Warn("failed to handle model.UserFollowerTask")
 			}
 
 		case task := <-userTasks:
 			if err := c.handleUserTask(task); err != nil {
-				return errors.Wrap(err, "failed to handle model.UserTask")
+				logger.WithError(err).Warn("failed to handle model.UserTask")
 			}
 
 		case task := <-repositoryTasks:
 			if err := c.handleRepositoryTask(task); err != nil {
-				return errors.Wrap(err, "failed to handle model.RepositoryTask")
+				logger.WithError(err).Warn("failed to handle model.RepositoryTask")
 			}
 
 		}

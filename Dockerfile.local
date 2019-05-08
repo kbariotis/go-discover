@@ -1,0 +1,8 @@
+FROM golang:1.12
+
+WORKDIR /src
+ADD . /src
+
+EXPOSE 8080
+
+CMD ["go", "run", "-mod=vendor", "./cmd/discover"]

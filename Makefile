@@ -31,6 +31,12 @@ deps:
 	$(info Installing dependencies)
 	@go mod download
 
+# Vendor dependencies
+.PHONY: vendor
+vendor: deps
+	$(info Vendoring dependencies)
+	@go mod vendor
+
 # Install tools
 .PHONY: tools
 tools: deps $(TOOLS)
@@ -61,6 +67,16 @@ build:
 .PHONY: run
 run: build
 	@LOG_LEVEL=debug ./bin/$(NAME)
+
+# Build and runs docker-compose
+.PHONY: docker-compose
+docker-compose: vendor
+	$(info Running docker-compose)
+	docker-compose stop
+	docker-compose rm -f
+	docker-compose down
+	docker-compose build
+	docker-compose run --rm discover
 
 # Run test suite
 .PHONY: test

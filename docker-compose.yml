@@ -1,0 +1,23 @@
+version: "2.1"
+services:
+  discover:
+    build:
+      context: ./
+      dockerfile: Dockerfile.local
+    links:
+      - neo
+      - redis
+    environment:
+      - LOG_LEVEL=DEBUG
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - QUEUE_STORE_DIR=/tmp
+
+  redis:
+    image: redis:5.0
+
+  neo:
+    image: neo4j:3.0
+    ports:
+      - "7474:7474"
+    volumes:
+      - ./local/db/dbms:/data/dbms

@@ -3,6 +3,6 @@ package model
 // User representation
 type User struct {
 	Name      string   `json:"name"`
-	Followers []string `json:"followers"`
+	Followees []string `json:"followees"`
 	Stars     []string `json:"stars"`
 }

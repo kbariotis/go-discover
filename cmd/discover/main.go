@@ -11,6 +11,7 @@ import (
 	"github.com/kbariotis/go-discover/internal/crawler"
 	"github.com/kbariotis/go-discover/internal/provider"
 	"github.com/kbariotis/go-discover/internal/queue"
+	"github.com/kbariotis/go-discover/internal/model"
 	"github.com/kbariotis/go-discover/internal/version"
 )
 
@@ -50,7 +51,7 @@ func main() {
 	userOnboardingQueue, err := queue.NewDQueue(
 		"userOnboarding.queue",
 		cfg.QueueStoreDir,
-		&crawler.UserOnboardingTask{},
+		&model.UserOnboardingTask{},
 	)
 	if err != nil {
 		logger.WithError(err).Fatal("could not create dqueue for userOnboarding")
@@ -59,7 +60,7 @@ func main() {
 	userFollowerQueue, err := queue.NewDQueue(
 		"userFollower.queue",
 		cfg.QueueStoreDir,
-		&crawler.UserFollowerTask{},
+		&model.UserFollowerTask{},
 	)
 	if err != nil {
 		logger.WithError(err).Fatal("could not create dqueue for userFollower")
@@ -68,7 +69,7 @@ func main() {
 	userQueue, err := queue.NewDQueue(
 		"user.queue",
 		cfg.QueueStoreDir,
-		&crawler.UserTask{},
+		&model.UserTask{},
 	)
 	if err != nil {
 		logger.WithError(err).Fatal("could not create dqueue for user")
@@ -77,7 +78,7 @@ func main() {
 	repositoryQueue, err := queue.NewDQueue(
 		"repository.queue",
 		cfg.QueueStoreDir,
-		&crawler.RepositoryTask{},
+		&model.RepositoryTask{},
 	)
 	if err != nil {
 		logger.WithError(err).Fatal("could not create dqueue for repository")

@@ -7,41 +7,24 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
+	"github.com/kbariotis/go-discover/internal/model"
 	"github.com/kbariotis/go-discover/internal/provider"
 	"github.com/kbariotis/go-discover/internal/queue"
 	"github.com/kbariotis/go-discover/internal/store"
 )
 
-type (
-	// Crawler
-	Crawler struct {
-		followerPollInterval time.Duration
+// Crawler is our main orchestrating service
+type Crawler struct {
+	followerPollInterval time.Duration
 
-		store    store.Store
-		provider provider.Provider
+	store    store.Store
+	provider provider.Provider
 
-		userOnboardingQueue queue.Queue
-		userFollowerQueue   queue.Queue
-		userQueue           queue.Queue
-		repositoryQueue     queue.Queue
-	}
-	// UserOnboardingTask represents a task in the userOnboarding queue
-	UserOnboardingTask struct {
-		Name string
-	}
-	// UserFollowerTask represents a task in the userFollower queue
-	UserFollowerTask struct {
-		Name string
-	}
-	// UserTask represents a task in the user queue
-	UserTask struct {
-		Name string
-	}
-	// RepositoryTask represents a task in the repository queue
-	RepositoryTask struct {
-		Name string
-	}
-)
+	userOnboardingQueue queue.Queue
+	userFollowerQueue   queue.Queue
+	userQueue           queue.Queue
+	repositoryQueue     queue.Queue
+}
 
 // New constructs a Github crawler
 func New(
@@ -88,7 +71,7 @@ func (c *Crawler) processOwnFollowers() error {
 			WithField("follower", follower).
 			Debug("got follower, pushing to userOnboardingQueue")
 
-		followerTask := &UserOnboardingTask{
+		followerTask := &model.UserOnboardingTask{
 			Name: follower,
 		}
 
@@ -100,7 +83,7 @@ func (c *Crawler) processOwnFollowers() error {
 	return nil
 }
 
-func (c *Crawler) handleUserOnboardingTask(task *UserOnboardingTask) error {
+func (c *Crawler) handleUserOnboardingTask(task *model.UserOnboardingTask) error {
 	ctx := context.Background()
 
 	logger := logrus.WithFields(logrus.Fields{
@@ -108,7 +91,7 @@ func (c *Crawler) handleUserOnboardingTask(task *UserOnboardingTask) error {
 		"task":   task,
 	})
 
-	logger.Info("handling UserOnboardingTask")
+	logger.Info("handling model.UserOnboardingTask")
 
 	// TODO check if we've already processed this user in last n hours
 
@@ -130,7 +113,7 @@ func (c *Crawler) handleUserOnboardingTask(task *UserOnboardingTask) error {
 			WithField("follower", follower).
 			Debug("got follower, pushing to handleUserFollowerTask")
 
-		followerTask := &UserFollowerTask{
+		followerTask := &model.UserFollowerTask{
 			Name: follower,
 		}
 
@@ -142,13 +125,13 @@ func (c *Crawler) handleUserOnboardingTask(task *UserOnboardingTask) error {
 	return nil
 }
 
-func (c *Crawler) handleUserFollowerTask(task *UserFollowerTask) error {
+func (c *Crawler) handleUserFollowerTask(task *model.UserFollowerTask) error {
 	logger := logrus.WithFields(logrus.Fields{
 		"logger": "crawler/Github.handleUserFollowerTask",
 		"task":   task,
 	})
 
-	logger.Info("handling UserFollowerTask")
+	logger.Info("handling model.UserFollowerTask")
 
 	// TODO check if we've already processed this user in last n hours
 
@@ -161,28 +144,28 @@ func (c *Crawler) handleUserFollowerTask(task *UserFollowerTask) error {
 	return nil
 }
 
-func (c *Crawler) handleUserTask(task *UserTask) error {
+func (c *Crawler) handleUserTask(task *model.UserTask) error {
 	logger := logrus.WithFields(logrus.Fields{
 		"logger": "crawler/handleUserTask.handleUserOnboardingTask",
 		"task":   task,
 	})
 
-	logger.Info("handling UserTask")
+	logger.Info("handling model.UserTask")
 
-	// TODO handle UserTask
+	// TODO handle model.UserTask
 
 	return nil
 }
 
-func (c *Crawler) handleRepositoryTask(task *RepositoryTask) error {
+func (c *Crawler) handleRepositoryTask(task *model.RepositoryTask) error {
 	logger := logrus.WithFields(logrus.Fields{
 		"logger": "crawler/Github.handleRepositoryTask",
 		"task":   task,
 	})
 
-	logger.Info("handling RepositoryTask")
+	logger.Info("handling model.RepositoryTask")
 
-	// TODO handle RepositoryTask
+	// TODO handle model.RepositoryTask
 
 	return nil
 }
@@ -194,10 +177,10 @@ func (c *Crawler) Start(ctx context.Context) error {
 		"logger": "crawler/Github.Start",
 	})
 
-	userOnboardingTasks := make(chan *UserOnboardingTask, 10000)
-	userFollowerTasks := make(chan *UserFollowerTask, 10000)
-	userTasks := make(chan *UserTask, 10000)
-	repositoryTasks := make(chan *RepositoryTask, 10000)
+	userOnboardingTasks := make(chan *model.UserOnboardingTask, 10000)
+	userFollowerTasks := make(chan *model.UserFollowerTask, 10000)
+	userTasks := make(chan *model.UserTask, 10000)
+	repositoryTasks := make(chan *model.RepositoryTask, 10000)
 
 	// pop tasks from userOnboardingQueue and push them to a local channel
 	go func() {
@@ -208,7 +191,7 @@ func (c *Crawler) Start(ctx context.Context) error {
 				time.Sleep(time.Second)
 				continue
 			}
-			if okTask, ok := task.(*UserOnboardingTask); ok {
+			if okTask, ok := task.(*model.UserOnboardingTask); ok {
 				userOnboardingTasks <- okTask
 			}
 		}
@@ -223,7 +206,7 @@ func (c *Crawler) Start(ctx context.Context) error {
 				time.Sleep(time.Second)
 				continue
 			}
-			if okTask, ok := task.(*UserFollowerTask); ok {
+			if okTask, ok := task.(*model.UserFollowerTask); ok {
 				userFollowerTasks <- okTask
 			}
 		}
@@ -238,7 +221,7 @@ func (c *Crawler) Start(ctx context.Context) error {
 				time.Sleep(time.Second)
 				continue
 			}
-			if okTask, ok := task.(*UserTask); ok {
+			if okTask, ok := task.(*model.UserTask); ok {
 				userTasks <- okTask
 			}
 		}
@@ -253,7 +236,7 @@ func (c *Crawler) Start(ctx context.Context) error {
 				time.Sleep(time.Second)
 				continue
 			}
-			if okTask, ok := task.(*RepositoryTask); ok {
+			if okTask, ok := task.(*model.RepositoryTask); ok {
 				repositoryTasks <- okTask
 			}
 		}
@@ -280,22 +263,22 @@ func (c *Crawler) Start(ctx context.Context) error {
 
 		case task := <-userOnboardingTasks:
 			if err := c.handleUserOnboardingTask(task); err != nil {
-				return errors.Wrap(err, "failed to handle UserOnboardingTask")
+				return errors.Wrap(err, "failed to handle model.UserOnboardingTask")
 			}
 
 		case task := <-userFollowerTasks:
 			if err := c.handleUserFollowerTask(task); err != nil {
-				return errors.Wrap(err, "failed to handle UserFollowerTask")
+				return errors.Wrap(err, "failed to handle model.UserFollowerTask")
 			}
 
 		case task := <-userTasks:
 			if err := c.handleUserTask(task); err != nil {
-				return errors.Wrap(err, "failed to handle UserTask")
+				return errors.Wrap(err, "failed to handle model.UserTask")
 			}
 
 		case task := <-repositoryTasks:
 			if err := c.handleRepositoryTask(task); err != nil {
-				return errors.Wrap(err, "failed to handle RepositoryTask")
+				return errors.Wrap(err, "failed to handle model.RepositoryTask")
 			}
 
 		}

@@ -10,6 +10,7 @@ import (
 type Provider interface {
 	GetUserStars(context.Context, string) ([]string, error)
 	GetUserFollowers(context.Context, string) ([]string, error)
+	GetUserFollowees(context.Context, string) ([]string, error)
 	GetUserRepositories(context.Context, string) ([]string, error)
 	FollowUser(context.Context, string) error
 }

@@ -25,7 +25,46 @@ func NewGithub(client *github.Client) (Provider, error) {
 
 // GetUserStars returns the user's starred repositories
 func (g *Github) GetUserStars(ctx context.Context, name string) ([]string, error) {
-	return nil, nil
+	logger := logrus.WithFields(logrus.Fields{
+		"logger":     "providers/Github.GetUserStars",
+		"user.login": name,
+	})
+
+	logger.Info("getting user's starred repositories")
+
+	stars := []string{}
+
+	currentPage := 1
+	for currentPage != 0 {
+		opts := &github.ActivityListStarredOptions{
+			ListOptions: github.ListOptions{
+				Page:    currentPage,
+				PerPage: 100,
+			},
+		}
+
+		moreRepos, res, err := g.client.Activity.ListStarred(ctx, name, opts)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not retrieve user's stars")
+		}
+
+		logger.
+			WithFields(logrus.Fields{
+				"current_page":  currentPage,
+				"count":         len(stars),
+				"res.code":      res.StatusCode,
+				"res.next_page": res.NextPage,
+			}).
+			Debug("got stars")
+
+		for _, repo := range moreRepos {
+			stars = append(stars, repo.Repository.GetFullName())
+		}
+
+		currentPage = res.NextPage
+	}
+
+	return stars, nil
 }
 
 // GetUserFollowers returnes the user's followers
@@ -46,7 +85,7 @@ func (g *Github) GetUserFollowers(ctx context.Context, name string) ([]string, e
 			PerPage: 100,
 		}
 
-		moreFollowers, res, err := g.client.Users.ListFollowers(ctx, "", opts)
+		moreFollowers, res, err := g.client.Users.ListFollowers(ctx, name, opts)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not retrieve user's followers")
 		}
@@ -68,6 +107,48 @@ func (g *Github) GetUserFollowers(ctx context.Context, name string) ([]string, e
 	}
 
 	return followers, nil
+}
+
+// GetUserFollowees returnes the user's followees
+func (g *Github) GetUserFollowees(ctx context.Context, name string) ([]string, error) {
+	logger := logrus.WithFields(logrus.Fields{
+		"logger":     "providers/Github.GetUserFollowees",
+		"user.login": name,
+	})
+
+	logger.Info("getting user's followers")
+
+	followees := []string{}
+
+	currentPage := 1
+	for currentPage != 0 {
+		opts := &github.ListOptions{
+			Page:    currentPage,
+			PerPage: 100,
+		}
+
+		moreFollowees, res, err := g.client.Users.ListFollowing(ctx, name, opts)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not retrieve user's followees")
+		}
+
+		logger.
+			WithFields(logrus.Fields{
+				"current_page":  currentPage,
+				"count":         len(followees),
+				"res.code":      res.StatusCode,
+				"res.next_page": res.NextPage,
+			}).
+			Debug("got followees")
+
+		for _, follower := range moreFollowees {
+			followees = append(followees, follower.GetLogin())
+		}
+
+		currentPage = res.NextPage
+	}
+
+	return followees, nil
 }
 
 // GetUserRepositories returns the user's repositories

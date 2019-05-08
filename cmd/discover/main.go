@@ -9,6 +9,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/kbariotis/go-discover/internal/crawler"
+	"github.com/kbariotis/go-discover/internal/provider"
 	"github.com/kbariotis/go-discover/internal/queue"
 	"github.com/kbariotis/go-discover/internal/version"
 )
@@ -82,20 +83,25 @@ func main() {
 		logger.WithError(err).Fatal("could not create dqueue for repository")
 	}
 
-	crw, err := crawler.NewGithub(
+	prv, err := provider.NewGithub(ghClient)
+	if err != nil {
+		logger.WithError(err).Fatal("could not construct github provider")
+	}
+
+	crw, err := crawler.New(
 		time.Minute*5,
 		nil, // TODO use proper store implementation
-		ghClient,
+		prv,
 		userOnboardingQueue,
 		userFollowerQueue,
 		userQueue,
 		repositoryQueue,
 	)
 	if err != nil {
-		logger.WithError(err).Fatal("could construct github crawler")
+		logger.WithError(err).Fatal("could not construct crawler")
 	}
 
-	logger.Info("starting github crawler")
+	logger.Info("starting crawler")
 
 	if err := crw.Start(ctx); err != nil {
 		logger.WithError(err).Fatal("github crawler processing failed")

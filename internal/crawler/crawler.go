@@ -99,7 +99,7 @@ func (c *Crawler) handleUserOnboardingTask(task *model.UserOnboardingTask) error
 
 	// follow back user
 	if err := c.provider.FollowUser(ctx, task.Name); err != nil {
-		return errors.Wrap(err, "could not follow back user")
+		// TODO return errors.Wrap(err, "could not follow back user")
 	}
 
 	// get user's followers and push them to the userFollower queue
@@ -126,6 +126,8 @@ func (c *Crawler) handleUserOnboardingTask(task *model.UserOnboardingTask) error
 }
 
 func (c *Crawler) handleUserFollowerTask(task *model.UserFollowerTask) error {
+	ctx := context.Background()
+
 	logger := logrus.WithFields(logrus.Fields{
 		"logger": "crawler/Github.handleUserFollowerTask",
 		"task":   task,
@@ -135,11 +137,30 @@ func (c *Crawler) handleUserFollowerTask(task *model.UserFollowerTask) error {
 
 	// TODO check if we've already processed this user in last n hours
 
-	// TODO fetch user's starred repos
+	// fetch user's starred repos
+	stars, err := c.provider.GetUserStars(ctx, task.Name)
+	if err != nil {
+		return errors.Wrap(err, "could not get user's stars")
+	}
+
+	// fetch user's followees
+	followees, err := c.provider.GetUserFollowees(ctx, task.Name)
+	if err != nil {
+		return errors.Wrap(err, "could not get user's followees")
+	}
 
 	// TODO fetch user's repositories
 
-	// TODO upsert the user to the c.store
+	// upsert the user to the c.store
+	user := &model.User{
+		Name:      task.Name,
+		Stars:     stars,
+		Followees: followees,
+	}
+
+	if err := c.store.PutUser(user); err != nil {
+		return errors.Wrap(err, "could not persist user")
+	}
 
 	return nil
 }

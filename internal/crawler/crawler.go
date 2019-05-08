@@ -152,9 +152,9 @@ func (c *Crawler) handleUserFolloweeTask(task *model.UserFolloweeTask) error {
 	// TODO check if we've already processed this user in last n hours
 
 	// follow back user
-	if err := c.provider.FollowUser(ctx, task.Name); err != nil {
-		// TODO return errors.Wrap(err, "could not follow back user")
-	}
+	// if err := c.provider.FollowUser(ctx, task.Name); err != nil {
+	// TODO return errors.Wrap(err, "could not follow back user")
+	// }
 
 	// fetch user's starred repos
 	stars, err := c.provider.GetUserStars(ctx, task.Name)

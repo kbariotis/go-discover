@@ -11,6 +11,10 @@ services:
       - LOG_LEVEL=DEBUG
       - GITHUB_TOKEN=${GITHUB_TOKEN}
       - QUEUE_STORE_DIR=/tmp
+      - NEO4J_HOST=http://neo4j:foobar@neo:7474/db/data
+    depends_on:
+      neo:
+        condition: service_healthy
 
   redis:
     image: redis:5.0
@@ -18,6 +22,22 @@ services:
   neo:
     image: neo4j:3.0
     ports:
-      - "7474:7474"
+      - 7474:7474
+      - 6477:6477
+      - 7687:7687
+    environment:
+      - NEO4J_AUTH=neo4j/foobar
+      - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
+      - NEO4J_dbms_connector_http_listen__address=0.0.0.0:7474
+      - NEO4J_dbms_connector_https_listen__address=0.0.0.0:6477
+      - NEO4J_dbms_connector_bolt_listen__address=0.0.0.0:7687
     volumes:
-      - ./local/db/dbms:/data/dbms
+      - ./local/neo4j/plugins:/plugins
+      - ./local/neo4j/data:/data
+      - ./local/neo4j/import:/import
+      - ./local/neo4j/logs:/logs
+    healthcheck:
+      test: curl -w %{http_code} -s --output /dev/null localhost:7474
+      interval: 5s
+      timeout: 5s
+      retries: 5

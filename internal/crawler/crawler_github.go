@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/google/go-github/v25/github"
@@ -69,16 +70,15 @@ func NewGithub(
 
 // processOwnFollowers processes our own followers
 func (g *Github) processOwnFollowers() error {
+	ctx := context.Background()
+
 	logger := logrus.WithFields(logrus.Fields{
 		"logger": "crawler/Github.processOwnFollowers",
 	})
 
-	logger.Info("processing followers")
+	logger.Info("processing own followers, listing own followers")
 
-	logger.Info("listing followers")
-
-	ctx := context.Background()
-
+	// get own followers and push them to the userOnboarding queue
 	currentPage := 1
 	for currentPage != 0 {
 		opts := &github.ListOptions{
@@ -88,7 +88,7 @@ func (g *Github) processOwnFollowers() error {
 
 		followers, res, err := g.client.Users.ListFollowers(ctx, "", opts)
 		if err != nil {
-			return errors.Wrap(err, "could not retrieve followers")
+			return errors.Wrap(err, "could not retrieve own followers")
 		}
 
 		logger.
@@ -103,26 +103,26 @@ func (g *Github) processOwnFollowers() error {
 		for _, follower := range followers {
 			logger.
 				WithField("follower", follower.GetLogin()).
-				Debug("got follower, pushing to userFollowerQueue")
+				Debug("got follower, pushing to userOnboardingQueue")
 
-			followerTask := &UserFollowerTask{
+			followerTask := &UserOnboardingTask{
 				Name: follower.GetLogin(),
 			}
 
 			if err := g.userFollowerQueue.Push(followerTask); err != nil {
-				return errors.Wrap(err, "could add follower task to queue")
+				return errors.Wrap(err, "could not add follower task to queue")
 			}
 		}
 
 		currentPage = res.NextPage
 	}
 
-	logger.Info("finished listing followers")
-
 	return nil
 }
 
 func (g *Github) handleUserOnboardingTask(task *UserOnboardingTask) error {
+	ctx := context.Background()
+
 	logger := logrus.WithFields(logrus.Fields{
 		"logger": "crawler/Github.handleUserOnboardingTask",
 		"task":   task,
@@ -130,7 +130,63 @@ func (g *Github) handleUserOnboardingTask(task *UserOnboardingTask) error {
 
 	logger.Info("handling UserOnboardingTask")
 
-	// TODO handle UserOnboardingTask
+	// TODO check if we've already processed this user in last n hours
+
+	logger.Info("listing user's followers")
+
+	// follow back user
+	res, err := g.client.Users.Follow(ctx, task.Name)
+	if err != nil {
+		return errors.Wrap(err, "could not follow back user")
+	}
+
+	if res.StatusCode != http.StatusOK {
+		logger.
+			WithFields(logrus.Fields{
+				"res.status":  res.StatusCode,
+				"res.headers": res.Header,
+			}).
+			Warn("following back a user returned a non-ok status code")
+	}
+
+	// get user's followers and push them to the userFollower queue
+	currentPage := 1
+	for currentPage != 0 {
+		opts := &github.ListOptions{
+			Page:    currentPage,
+			PerPage: 100,
+		}
+
+		followers, res, err := g.client.Users.ListFollowers(ctx, "", opts)
+		if err != nil {
+			return errors.Wrap(err, "could not retrieve user's followers")
+		}
+
+		logger.
+			WithFields(logrus.Fields{
+				"current_page":  currentPage,
+				"count":         len(followers),
+				"res.code":      res.StatusCode,
+				"res.next_page": res.NextPage,
+			}).
+			Debug("got followers")
+
+		for _, follower := range followers {
+			logger.
+				WithField("follower", follower.GetLogin()).
+				Debug("got follower, pushing to handleUserFollowerTask")
+
+			followerTask := &UserFollowerTask{
+				Name: follower.GetLogin(),
+			}
+
+			if err := g.userFollowerQueue.Push(followerTask); err != nil {
+				return errors.Wrap(err, "could not add follower task to queue")
+			}
+		}
+
+		currentPage = res.NextPage
+	}
 
 	return nil
 }
@@ -143,7 +199,11 @@ func (g *Github) handleUserFollowerTask(task *UserFollowerTask) error {
 
 	logger.Info("handling UserFollowerTask")
 
-	// TODO handle UserFollowerTask
+	// TODO check if we've already processed this user in last n hours
+
+	// TODO fetch user's starred repos
+	// TODO fetch user's repositories
+	// TODO upsert the user to the g.store
 
 	return nil
 }

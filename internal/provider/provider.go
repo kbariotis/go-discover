@@ -14,5 +14,6 @@ type Provider interface {
 	GetUserFollowers(context.Context, string) ([]string, error)
 	GetUserFollowees(context.Context, string) ([]string, error)
 	GetUserRepositories(context.Context, string) ([]string, error)
+	GetRepository(context.Context, string) (*model.Repository, error)
 	FollowUser(context.Context, string) error
 }

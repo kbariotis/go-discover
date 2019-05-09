@@ -122,7 +122,7 @@ func (neo *Neo) PutUser(user *model.User) error {
 			Statement: `
 				MATCH (u:User {name: {user}})
 				MERGE (r:Repository {name: {repository}})
-				MERGE (u)-[:HasStarred { starredAt: starredAt }]->(r)
+				MERGE (u)-[:HasStarred {starredAt: {starredAt}}]->(r)
 			`,
 			Parameters: map[string]interface{}{
 				"user":       user.Name,

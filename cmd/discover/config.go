@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/caarlos0/env"
 )
 
@@ -11,6 +13,9 @@ type Config struct {
 	QueueStoreDir string `env:"QUEUE_STORE_DIR" envDefault:"${HOME}/go-discover" envExpand:"true"`
 	NeoHost       string `env:"NEO4J_HOST" envDefault:"http://localhost:7474/db/data"`
 	RedisHost     string `env:"REDIS_HOST" envDefault:"localhost:6379"`
+
+	LockUserDuration       time.Duration `env:"LOCK_USER_DURATION" envDefault:"12h"`
+	LockRepositoryDuration time.Duration `env:"LOCK_REPOSITORY_DURATION" envDefault:"24h"`
 }
 
 // loadConfig parses environment variables returning configuration

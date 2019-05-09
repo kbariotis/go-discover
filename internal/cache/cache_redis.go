@@ -9,10 +9,17 @@ import (
 // Redis cache implementation
 type Redis struct {
 	client *redis.Client
+
+	userLockDuration       time.Duration
+	repositoryLockDuration time.Duration
 }
 
-// Redis constructs a new Redis cache given a Redis client
-func NewRedis(client *redis.Client) (Cache, error) {
+// NewRedis constructs a new Redis cache given a Redis client
+func NewRedis(
+	client *redis.Client,
+	lockUserDuration time.Duration,
+	lockRepositoryDuration time.Duration,
+) (Cache, error) {
 	red := &Redis{
 		client: client,
 	}
@@ -20,9 +27,21 @@ func NewRedis(client *redis.Client) (Cache, error) {
 	return red, nil
 }
 
-// LockUser merges a user's graph in red
+// LockUser locks a user for an x amount of time
 func (red *Redis) LockUser(user string) error {
-	if err := red.client.Set(user, "value", time.Hour).Err(); err != nil {
+	key := "user/" + user
+	duration := red.userLockDuration
+	if err := red.client.Set(key, "value", duration).Err(); err != nil {
+		return ErrAlreadyLocked
+	}
+	return nil
+}
+
+// LockRepository locks a repository for an x amount of time
+func (red *Redis) LockRepository(name string) error {
+	key := "repository/" + name
+	duration := red.repositoryLockDuration
+	if err := red.client.Set(key, "value", duration).Err(); err != nil {
 		return ErrAlreadyLocked
 	}
 	return nil

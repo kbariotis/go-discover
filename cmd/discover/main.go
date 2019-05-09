@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/Financial-Times/neoism"
@@ -110,8 +109,7 @@ func main() {
 		Password: "", // no password set
 		DB:       0,  // use default DB
 	})
-	pong, err := redisClient.Ping().Result()
-	fmt.Println(pong, err)
+	_, err = redisClient.Ping().Result()
 	if err != nil {
 		logger.WithError(err).Fatal("could not connect to Redis")
 	}

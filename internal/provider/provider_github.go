@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/google/go-github/v25/github"
 	"github.com/kbariotis/go-discover/internal/model"
@@ -155,6 +156,43 @@ func (g *Github) GetUserFollowees(ctx context.Context, name string) ([]string, e
 // GetUserRepositories returns the user's repositories
 func (g *Github) GetUserRepositories(ctx context.Context, name string) ([]string, error) {
 	return nil, nil
+}
+
+// GetRepository returns a repository
+func (g *Github) GetRepository(ctx context.Context, name string) (*model.Repository, error) {
+	parts := strings.Split(name, "/")
+	repoOwner := parts[len(parts)-2]
+	repoName := parts[len(parts)-1]
+
+	logger := logrus.WithFields(logrus.Fields{
+		"logger":               "providers/Github.GetRepository",
+		"repository.name":      name,
+		"repository.repoOwner": repoOwner,
+		"repository.repoName":  repoName,
+	})
+
+	repo, _, err := g.client.Repositories.Get(ctx, repoOwner, repoName)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not retrieve repository")
+	}
+
+	logger.Debug("got repository")
+
+	topics, _, err := g.client.Repositories.ListAllTopics(ctx, repoOwner, repoName)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not retrieve topics")
+	}
+
+	logger.Debug("got repository topics")
+
+	mRepo := &model.Repository{
+		Name:   name,
+		Labels: topics,
+		Languages: []string{
+			repo.GetLanguage(),
+		},
+	}
+	return mRepo, nil
 }
 
 // FollowUser follows a user give their login

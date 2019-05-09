@@ -4,6 +4,7 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile.local
+    env_file: .env
     links:
       - neo
       - redis
@@ -23,6 +24,8 @@ services:
     image: redis:5.0
     ports:
       - 6379
+    volumes:
+      - ./local/redis/data:/data
     healthcheck:
       test: ["CMD", "redis-cli","ping"]
       interval: 30s

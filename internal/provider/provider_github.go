@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/google/go-github/v25/github"
+	"github.com/kbariotis/go-discover/internal/model"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -24,7 +25,7 @@ func NewGithub(client *github.Client) (Provider, error) {
 }
 
 // GetUserStars returns the user's starred repositories
-func (g *Github) GetUserStars(ctx context.Context, name string) ([]string, error) {
+func (g *Github) GetUserStars(ctx context.Context, name string) ([]model.StarredRepository, error) {
 	logger := logrus.WithFields(logrus.Fields{
 		"logger":     "providers/Github.GetUserStars",
 		"user.login": name,
@@ -32,7 +33,7 @@ func (g *Github) GetUserStars(ctx context.Context, name string) ([]string, error
 
 	logger.Info("getting user's starred repositories")
 
-	stars := []string{}
+	stars := []model.StarredRepository{}
 
 	currentPage := 1
 	for currentPage != 0 {
@@ -58,7 +59,7 @@ func (g *Github) GetUserStars(ctx context.Context, name string) ([]string, error
 			Debug("got stars")
 
 		for _, repo := range moreRepos {
-			stars = append(stars, repo.Repository.GetFullName())
+			stars = append(stars, model.StarredRepository{repo.Repository.GetFullName(), repo.StarredAt.Unix()})
 		}
 
 		currentPage = res.NextPage

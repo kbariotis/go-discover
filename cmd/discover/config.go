@@ -10,6 +10,7 @@ type Config struct {
 	GithubToken   string `env:"GITHUB_TOKEN"`
 	QueueStoreDir string `env:"QUEUE_STORE_DIR" envDefault:"${HOME}/go-discover" envExpand:"true"`
 	NeoHost       string `env:"NEO4J_HOST" envDefault:"http://localhost:7474/db/data"`
+	RedisHost     string `env:"REDIS_HOST" envDefault:"localhost:6379"`
 }
 
 // loadConfig parses environment variables returning configuration

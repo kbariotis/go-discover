@@ -2,13 +2,16 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/Financial-Times/neoism"
+	"github.com/go-redis/redis"
 	"github.com/google/go-github/v25/github"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
+	"github.com/kbariotis/go-discover/internal/cache"
 	"github.com/kbariotis/go-discover/internal/crawler"
 	"github.com/kbariotis/go-discover/internal/model"
 	"github.com/kbariotis/go-discover/internal/provider"
@@ -101,6 +104,22 @@ func main() {
 		logger.WithError(err).Fatal("could not create neo store")
 	}
 
+	// create redis cache
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     cfg.RedisHost,
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
+	pong, err := redisClient.Ping().Result()
+	fmt.Println(pong, err)
+	if err != nil {
+		logger.WithError(err).Fatal("could not connect to Redis")
+	}
+	redis, err := cache.NewRedis(redisClient)
+	if err != nil {
+		logger.WithError(err).Fatal("could not create Redis cache")
+	}
+
 	// create github provider
 	prv, err := provider.NewGithub(ghClient)
 	if err != nil {
@@ -111,6 +130,7 @@ func main() {
 	crw, err := crawler.New(
 		time.Minute*5,
 		neo,
+		redis,
 		prv,
 		userOnboardingQueue,
 		userFolloweeQueue,

@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
+	"github.com/kbariotis/go-discover/internal/cache"
 	"github.com/kbariotis/go-discover/internal/model"
 	"github.com/kbariotis/go-discover/internal/provider"
 	"github.com/kbariotis/go-discover/internal/queue"
@@ -18,6 +19,7 @@ type Crawler struct {
 	followerPollInterval time.Duration
 
 	store    store.Store
+	cache    cache.Cache
 	provider provider.Provider
 
 	userOnboardingQueue queue.Queue
@@ -30,6 +32,7 @@ type Crawler struct {
 func New(
 	followerPollInterval time.Duration,
 	store store.Store,
+	cache cache.Cache,
 	provider provider.Provider,
 	userOnboardingQueue queue.Queue,
 	userFolloweeQueue queue.Queue,
@@ -39,6 +42,7 @@ func New(
 
 	crw := &Crawler{
 		store:                store,
+		cache:                cache,
 		provider:             provider,
 		followerPollInterval: followerPollInterval,
 		userOnboardingQueue:  userOnboardingQueue,
@@ -149,7 +153,15 @@ func (c *Crawler) handleUserFolloweeTask(task *model.UserFolloweeTask) error {
 
 	logger.Info("handling model.UserFolloweeTask")
 
-	// TODO check if we've already processed this user in last n hours
+	// check if user is in the cache
+	if err := c.cache.LockUser(task.Name); err != nil {
+		if err == cache.ErrAlreadyLocked {
+			logger.Info("User's cached, skipping")
+			return nil
+		}
+
+		return errors.Wrap(err, "could not cache user")
+	}
 
 	// follow back user
 	// if err := c.provider.FollowUser(ctx, task.Name); err != nil {

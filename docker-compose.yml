@@ -4,6 +4,7 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile.local
+    env_file: .env
     links:
       - neo
       - redis

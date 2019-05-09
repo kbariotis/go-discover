@@ -24,7 +24,7 @@ func NewGithub(client *github.Client) (Provider, error) {
 }
 
 // GetUserStars returns the user's starred repositories
-func (g *Github) GetUserStars(ctx context.Context, name string) ([]string, error) {
+func (g *Github) GetUserStars(ctx context.Context, name string) ([]StarredRepository, error) {
 	logger := logrus.WithFields(logrus.Fields{
 		"logger":     "providers/Github.GetUserStars",
 		"user.login": name,
@@ -32,7 +32,7 @@ func (g *Github) GetUserStars(ctx context.Context, name string) ([]string, error
 
 	logger.Info("getting user's starred repositories")
 
-	stars := []string{}
+	stars := []StarredRepository{}
 
 	currentPage := 1
 	for currentPage != 0 {
@@ -58,7 +58,7 @@ func (g *Github) GetUserStars(ctx context.Context, name string) ([]string, error
 			Debug("got stars")
 
 		for _, repo := range moreRepos {
-			stars = append(stars, repo.Repository.GetFullName())
+			stars = append(stars, StarredRepository{repo.Repository.GetFullName(), repo.StarredAt.Unix()})
 		}
 
 		currentPage = res.NextPage

@@ -113,7 +113,11 @@ func main() {
 	if err != nil {
 		logger.WithError(err).Fatal("could not connect to Redis")
 	}
-	redis, err := cache.NewRedis(redisClient)
+	redis, err := cache.NewRedis(
+		redisClient,
+		cfg.LockUserDuration,
+		cfg.LockRepositoryDuration,
+	)
 	if err != nil {
 		logger.WithError(err).Fatal("could not create Redis cache")
 	}

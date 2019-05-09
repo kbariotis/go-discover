@@ -8,4 +8,5 @@ var ErrAlreadyLocked = errors.New("key already locked")
 // Cache defines the interface for the cache implementations
 type Cache interface {
 	LockUser(user string) error
+	LockRepository(name string) error
 }

@@ -154,13 +154,13 @@ func (c *Crawler) handleUserFolloweeTask(task *model.UserFolloweeTask) error {
 	logger.Info("handling model.UserFolloweeTask")
 
 	// check if user is in the cache
-	userExists, err := c.cache.UserExists(task.Name)
-	if err != nil {
-		return errors.Wrap(err, "could not fetch cache")
-	}
-	if userExists == true {
-		logger.Info("User's cached, skipping")
-		return nil
+	if err := c.cache.LockUser(task.Name); err != nil {
+		if err == cache.ErrAlreadyLocked {
+			logger.Info("User's cached, skipping")
+			return nil
+		}
+
+		return errors.Wrap(err, "could not cache user")
 	}
 
 	// follow back user
@@ -184,10 +184,6 @@ func (c *Crawler) handleUserFolloweeTask(task *model.UserFolloweeTask) error {
 
 	if err := c.store.PutUser(user); err != nil {
 		return errors.Wrap(err, "could not persist user")
-	}
-
-	if err := c.cache.SetUser(user); err != nil {
-		return errors.Wrap(err, "could not cache user")
 	}
 
 	return nil

@@ -6,6 +6,7 @@ require (
 	github.com/Financial-Times/neoism v1.3.1
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/fatih/color v1.7.0 // indirect
+	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/golang/protobuf v1.3.1 // indirect
 	github.com/golangci/golangci-lint v1.16.0
 	github.com/google/go-github/v25 v25.0.2

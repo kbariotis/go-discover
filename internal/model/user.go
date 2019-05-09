@@ -1,10 +1,13 @@
 package model
 
-import "github.com/kbariotis/go-discover/internal/provider"
+type StarredRepository struct {
+	Repository string
+	StarredAt  int64
+}
 
 // User representation
 type User struct {
-	Name      string                       `json:"name"`
-	Followees []string                     `json:"followees"`
-	Stars     []provider.StarredRepository `json:"stars"`
+	Name      string              `json:"name"`
+	Followees []string            `json:"followees"`
+	Stars     []StarredRepository `json:"stars"`
 }

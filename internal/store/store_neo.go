@@ -126,8 +126,8 @@ func (neo *Neo) PutUser(user *model.User) error {
 			`,
 			Parameters: map[string]interface{}{
 				"user":       user.Name,
-				"repository": repository,
-				"starredAt":  repository,
+				"repository": repository.Repository,
+				"starredAt":  repository.StarredAt,
 			},
 		}
 		if err := neo.db.Cypher(query); err != nil {

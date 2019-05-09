@@ -174,6 +174,13 @@ func (c *Crawler) handleUserFolloweeTask(task *model.UserFolloweeTask) error {
 		return errors.Wrap(err, "could not get user's stars")
 	}
 
+	// push all starred repos to repository queue
+	for _, star := range stars {
+		c.repositoryQueue.Push(&model.RepositoryTask{
+			Name: star.Repository,
+		})
+	}
+
 	// TODO fetch user's repositories
 
 	// upsert the user to the c.store
@@ -203,6 +210,8 @@ func (c *Crawler) handleUserTask(task *model.UserTask) error {
 }
 
 func (c *Crawler) handleRepositoryTask(task *model.RepositoryTask) error {
+	ctx := context.Background()
+
 	logger := logrus.WithFields(logrus.Fields{
 		"logger": "crawler/Github.handleRepositoryTask",
 		"task":   task,
@@ -210,7 +219,25 @@ func (c *Crawler) handleRepositoryTask(task *model.RepositoryTask) error {
 
 	logger.Info("handling model.RepositoryTask")
 
-	// TODO handle model.RepositoryTask
+	// check if repository is in the cache
+	if err := c.cache.LockRepository(task.Name); err != nil {
+		if err == cache.ErrAlreadyLocked {
+			logger.Info("Repository's cached, skipping")
+			return nil
+		}
+		return errors.Wrap(err, "could not cache repository")
+	}
+
+	// get repository
+	repository, err := c.provider.GetRepository(ctx, task.Name)
+	if err != nil {
+		return errors.Wrap(err, "could not get repository")
+	}
+
+	// upsert the repository
+	if err := c.store.PutRepository(repository); err != nil {
+		return errors.Wrap(err, "could not store repository")
+	}
 
 	return nil
 }

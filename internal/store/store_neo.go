@@ -1,8 +1,15 @@
 package store
 
 import (
+	"bytes"
+	"encoding/json"
+	"strings"
+	"text/template"
+	"time"
+
 	"github.com/Financial-Times/neoism"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	"github.com/kbariotis/go-discover/internal/model"
 )
@@ -12,13 +19,93 @@ type Neo struct {
 	db *neoism.Database
 }
 
+const (
+	neoPutRepositoryQueryTemplate = `
+		MERGE (r:Repository {name: "{{ .Name }}"})
+		WITH r
+		FOREACH (label IN {{ toStrings .Labels }} |
+			MERGE (l:Label {name: label})
+			MERGE (r)-[:ContainsTopic]->(l)
+		)
+		WITH r
+		FOREACH (language IN {{ toStrings .Languages }} |
+			MERGE (l:Label {name: language})
+			MERGE (r)-[:ContainsLanguage]->(l)
+		)
+	`
+	// TODO stars should also be
+	neoPutUserQueryTemplate = `
+		MERGE (u:User {name: "{{ .Name }}"})
+		WITH u
+		FOREACH (followee IN {{ toStrings .Followees}} |
+			MERGE (f:User {name: followee})
+			MERGE (u)-[:IsFollowing]->(f)
+		)
+		WITH u
+		WITH {{ toObject .Stars }} AS stars
+		FOREACH (star IN stars |
+			MERGE (r:Repository {name: star.repository})
+			MERGE (u)-[:HasStarred {starredAt: star.starredAt}]->(r)
+		)
+	`
+)
+
+var (
+	neoIndicesQueries = []string{
+		"CREATE CONSTRAINT ON (n:User) ASSERT n.name IS UNIQUE",
+		"CREATE CONSTRAINT ON (n:Repository) ASSERT n.name IS UNIQUE",
+		"CREATE CONSTRAINT ON (n:Label) ASSERT n.name IS UNIQUE",
+		"CREATE CONSTRAINT ON (n:Language) ASSERT n.name IS UNIQUE",
+	}
+)
+
+func neoToNeoObject(m interface{}) string {
+	bytes, _ := json.Marshal(m)
+	json := string(bytes)
+	json = strings.Replace(json, `"repository"`, "`repository`", -1)
+	json = strings.Replace(json, `"starredAt"`, "`starredAt`", -1)
+
+	if json == "null" {
+		return "[]"
+	}
+
+	return json
+}
+
+func neoToNeoStrings(m []string) string {
+	bytes, _ := json.Marshal(m)
+	return string(bytes)
+}
+
 // NewNeo constrcuts a new Neo store given a neoism db
-func NewNeo(db *neoism.Database) (Store, error) {
+func NewNeo(db *neoism.Database) (*Neo, error) {
 	neo := &Neo{
 		db: db,
 	}
 
 	return neo, nil
+}
+
+// SetupIndices creates indices for neo
+func (neo *Neo) SetupIndices() error {
+	logger := logrus.WithFields(logrus.Fields{
+		"logger": "store/Neo.SetupIndices",
+	})
+
+	logger.Info("setting up indices")
+
+	// run queries
+	for _, neoIndicesQuery := range neoIndicesQueries {
+		cypherQuery := &neoism.CypherQuery{
+			Statement:  neoIndicesQuery,
+			Parameters: map[string]interface{}{},
+		}
+		if err := neo.db.Cypher(cypherQuery); err != nil {
+			return errors.Wrap(err, "could not setup indices")
+		}
+	}
+
+	return nil
 }
 
 // GetRepository returns a repository graph from neo
@@ -29,52 +116,51 @@ func (neo *Neo) GetRepository(name string) (*model.Repository, error) {
 
 // PutRepository merges a repository's graph in neo
 func (neo *Neo) PutRepository(repository *model.Repository) error {
-	// merge repository
-	repositoryQuery := &neoism.CypherQuery{
-		Statement: `MERGE (r:Repository {name: {repository}})`,
-		Parameters: map[string]interface{}{
-			"repository": repository.Name,
-		},
+	logger := logrus.WithFields(logrus.Fields{
+		"logger":                     "store/Neo.PutRepository",
+		"repository.name":            repository.Name,
+		"repository.labels.count":    len(repository.Labels),
+		"repository.languages.count": len(repository.Languages),
+	})
+
+	logger.Info("following user")
+
+	// keep start time for query metrics
+	startTime := time.Now()
+
+	// create template for query
+	neoPutRepositoryQuery, err := template.
+		New("neoPutRepositoryQuery").
+		Funcs(template.FuncMap{
+			"toObject":  neoToNeoObject,
+			"toStrings": neoToNeoStrings,
+		}).
+		Parse(neoPutRepositoryQueryTemplate)
+	if err != nil {
+		return errors.Wrap(err, "could not parse template")
 	}
-	if err := neo.db.Cypher(repositoryQuery); err != nil {
+
+	// render query
+	query := &bytes.Buffer{}
+	if err := neoPutRepositoryQuery.Execute(query, repository); err != nil {
 		return errors.Wrap(err, "could not merge repository")
 	}
 
-	// add repository's labels
-	for _, label := range repository.Labels {
-		query := &neoism.CypherQuery{
-			Statement: `
-				MATCH (r:Repository {name: {repository}})
-				MERGE (l:Label {name: {label}})
-				MERGE (r)-[:Has]->(l)
-			`,
-			Parameters: map[string]interface{}{
-				"repository": repository.Name,
-				"label":      label,
-			},
-		}
-		if err := neo.db.Cypher(query); err != nil {
-			return errors.Wrap(err, "could not merge Has")
-		}
+	logger.WithField("query", query).Debug("running query")
+
+	// run query
+	cypherQuery := &neoism.CypherQuery{
+		Statement:  query.String(),
+		Parameters: map[string]interface{}{},
+	}
+	if err := neo.db.Cypher(cypherQuery); err != nil {
+		return errors.Wrap(err, "could not merge repo")
 	}
 
-	// add repository's languages
-	for _, language := range repository.Languages {
-		query := &neoism.CypherQuery{
-			Statement: `
-				MATCH (r:Repository {name: {repository}})
-				MERGE (l:Language {name: {language}})
-				MERGE (r)-[:Contains]->(l)
-			`,
-			Parameters: map[string]interface{}{
-				"repository": repository.Name,
-				"language":   language,
-			},
-		}
-		if err := neo.db.Cypher(query); err != nil {
-			return errors.Wrap(err, "could not merge Contains")
-		}
-	}
+	// log query time
+	logger.
+		WithField("execution_time", time.Now().Sub(startTime)).
+		Debug("query execution finished")
 
 	return nil
 }
@@ -87,53 +173,51 @@ func (neo *Neo) GetUser(user string) (*model.User, error) {
 
 // PutUser merges a user's graph in neo
 func (neo *Neo) PutUser(user *model.User) error {
-	// merge user
-	userQuery := &neoism.CypherQuery{
-		Statement: `MERGE (u:User {name: {user}})`,
-		Parameters: map[string]interface{}{
-			"user": user.Name,
-		},
+	logger := logrus.WithFields(logrus.Fields{
+		"logger":               "store/Neo.PutUser",
+		"user.name":            user.Name,
+		"user.followees.count": len(user.Followees),
+		"user.stars.count":     len(user.Stars),
+	})
+
+	logger.Info("following user")
+
+	// keep start time for query metrics
+	startTime := time.Now()
+
+	// create template for query
+	neoPutUserQuery, err := template.
+		New("neoPutUserQuery").
+		Funcs(template.FuncMap{
+			"toObject":  neoToNeoObject,
+			"toStrings": neoToNeoStrings,
+		}).
+		Parse(neoPutUserQueryTemplate)
+	if err != nil {
+		return errors.Wrap(err, "could not parse template")
 	}
-	if err := neo.db.Cypher(userQuery); err != nil {
+
+	// render query
+	query := &bytes.Buffer{}
+	if err := neoPutUserQuery.Execute(query, user); err != nil {
 		return errors.Wrap(err, "could not merge user")
 	}
 
-	// add user's followers
-	for _, followee := range user.Followees {
-		query := &neoism.CypherQuery{
-			Statement: `
-				MATCH (u:User {name: {user}})
-				MERGE (f:User {name: {followee}})
-				MERGE (u)-[:IsFollowing]->(f)
-			`,
-			Parameters: map[string]interface{}{
-				"user":     user.Name,
-				"followee": followee,
-			},
-		}
-		if err := neo.db.Cypher(query); err != nil {
-			return errors.Wrap(err, "could not merge IsFollowing")
-		}
+	logger.WithField("query", query).Debug("running query")
+
+	// run query
+	cypherQuery := &neoism.CypherQuery{
+		Statement:  query.String(),
+		Parameters: map[string]interface{}{},
+	}
+	if err := neo.db.Cypher(cypherQuery); err != nil {
+		return errors.Wrap(err, "could not merge user")
 	}
 
-	// add starred repositories
-	for _, repository := range user.Stars {
-		query := &neoism.CypherQuery{
-			Statement: `
-				MATCH (u:User {name: {user}})
-				MERGE (r:Repository {name: {repository}})
-				MERGE (u)-[:HasStarred {starredAt: {starredAt}}]->(r)
-			`,
-			Parameters: map[string]interface{}{
-				"user":       user.Name,
-				"repository": repository.Repository,
-				"starredAt":  repository.StarredAt,
-			},
-		}
-		if err := neo.db.Cypher(query); err != nil {
-			return errors.Wrap(err, "could not merge HasStarred")
-		}
-	}
+	// log query time
+	logger.
+		WithField("execution_time", time.Now().Sub(startTime)).
+		Debug("query execution finished")
 
 	return nil
 }

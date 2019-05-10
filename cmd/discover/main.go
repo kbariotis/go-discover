@@ -103,6 +103,11 @@ func main() {
 		logger.WithError(err).Fatal("could not create neo store")
 	}
 
+	// setup neo indices
+	if err := neo.SetupIndices(); err != nil {
+		logger.WithError(err).Fatal("could not setup neo indices")
+	}
+
 	// create redis cache
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     cfg.RedisHost,

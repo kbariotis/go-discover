@@ -2,7 +2,7 @@ package model
 
 // Repository representation
 type Repository struct {
-	Name      string   `json:"name"`
-	Labels    []string `json:"labels"`
-	Languages []string `json:"languages"`
+	Name      string   `json:"name,omitempty"`
+	Labels    []string `json:"labels,omitempty"`
+	Languages []string `json:"languages,omitempty"`
 }

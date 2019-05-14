@@ -7,9 +7,13 @@ import (
 	"github.com/Financial-Times/neoism"
 	"github.com/go-redis/redis"
 	"github.com/google/go-github/v25/github"
+	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
+	_ "github.com/jinzhu/gorm/dialects/sqlite" // required for sqlite
+
+	"github.com/kbariotis/go-discover/internal/api"
 	"github.com/kbariotis/go-discover/internal/cache"
 	"github.com/kbariotis/go-discover/internal/crawler"
 	"github.com/kbariotis/go-discover/internal/model"
@@ -92,20 +96,41 @@ func main() {
 
 	// create neo db
 	time.Sleep(time.Second * 30)
-	db, err := neoism.Connect(cfg.NeoHost)
+	graphDB, err := neoism.Connect(cfg.NeoHost)
 	if err != nil {
 		logger.WithError(err).Fatal("could not create neo client")
 	}
 
-	// create neo store
-	neo, err := store.NewNeo(db)
+	// create graph store
+	graphStore, err := store.NewNeo(graphDB)
 	if err != nil {
-		logger.WithError(err).Fatal("could not create neo store")
+		logger.WithError(err).Fatal("could not create graph store")
 	}
 
-	// setup neo indices
-	if err := neo.SetupIndices(); err != nil {
-		logger.WithError(err).Fatal("could not setup neo indices")
+	// setup graph store indices
+	if err := graphStore.SetupIndices(); err != nil {
+		logger.WithError(err).Fatal("could not setup graph indices")
+	}
+
+	// connect to suggestions store db
+	db, err := gorm.Open(
+		cfg.SuggestionsStoreType,
+		cfg.SuggestionsStoreDSN,
+	)
+	if err != nil {
+		logger.WithError(err).Fatal("could not connect to db")
+	}
+	defer db.Close()
+
+	// create suggestions store
+	suggestionStore, err := store.NewSuggestionSQL(db)
+	if err != nil {
+		logger.WithError(err).Fatal("could not create suggestion store")
+	}
+
+	// setup suggestion db
+	if err := suggestionStore.Setup(); err != nil {
+		logger.WithError(err).Fatal("could not setup suggestion db")
 	}
 
 	// create redis cache
@@ -133,10 +158,16 @@ func main() {
 		logger.WithError(err).Fatal("could not construct github provider")
 	}
 
+	// constrcut api
+	api := api.NewAPI(suggestionStore)
+
+	// start api on the background
+	go api.Serve(cfg.APIBindAddress)
+
 	// create crawler
 	crw, err := crawler.New(
 		time.Minute*5,
-		neo,
+		graphStore,
 		redis,
 		prv,
 		userOnboardingQueue,

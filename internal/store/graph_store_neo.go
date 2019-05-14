@@ -108,12 +108,6 @@ func (neo *Neo) SetupIndices() error {
 	return nil
 }
 
-// GetRepository returns a repository graph from neo
-func (neo *Neo) GetRepository(name string) (*model.Repository, error) {
-	// TODO implement neo.GetRepository
-	return nil, nil
-}
-
 // PutRepository merges a repository's graph in neo
 func (neo *Neo) PutRepository(repository *model.Repository) error {
 	logger := logrus.WithFields(logrus.Fields{
@@ -163,12 +157,6 @@ func (neo *Neo) PutRepository(repository *model.Repository) error {
 		Debug("query execution finished")
 
 	return nil
-}
-
-// GetUser returns a user graph from neo
-func (neo *Neo) GetUser(user string) (*model.User, error) {
-	// TODO implement neo.GetUser
-	return nil, nil
 }
 
 // PutUser merges a user's graph in neo

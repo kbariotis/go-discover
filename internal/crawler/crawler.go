@@ -18,7 +18,7 @@ import (
 type Crawler struct {
 	followerPollInterval time.Duration
 
-	store    store.Store
+	store    store.GraphStore
 	cache    cache.Cache
 	provider provider.Provider
 
@@ -31,7 +31,7 @@ type Crawler struct {
 // New constructs a Github crawler
 func New(
 	followerPollInterval time.Duration,
-	store store.Store,
+	store store.GraphStore,
 	cache cache.Cache,
 	provider provider.Provider,
 	userOnboardingQueue queue.Queue,

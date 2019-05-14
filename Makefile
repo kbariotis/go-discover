@@ -31,6 +31,12 @@ deps:
 	$(info Installing dependencies)
 	@go mod download
 
+# Generate mocks
+.PHONY: mocks
+mocks:
+	$(info Generating mocks)
+	@go generate ./...
+
 # Vendor dependencies
 .PHONY: vendor
 vendor: deps

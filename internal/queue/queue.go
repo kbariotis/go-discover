@@ -1,6 +1,6 @@
 package queue
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -p . Queue
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . Queue
 
 // Queue represents the interface for our queue implementations
 type Queue interface {

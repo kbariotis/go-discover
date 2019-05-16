@@ -1,0 +1,5 @@
+{{ if .ErrorMessage }}
+    {{ .ErrorMessage }}
+{{ else }}
+    Hello {{ .User.Name }} ({{ .User.Email }}!
+{{ end }}

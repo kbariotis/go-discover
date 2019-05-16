@@ -8,10 +8,16 @@ services:
     links:
       - neo
       - redis
+    ports:
+      - 8080:8080
+    volumes:
+      - ./local:/local
     environment:
       - LOG_LEVEL=DEBUG
       - GITHUB_TOKEN=${GITHUB_TOKEN}
-      - QUEUE_STORE_DIR=/tmp
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - QUEUE_STORE_DIR=./
       - NEO4J_HOST=http://neo4j:foobar@neo:7474/db/data
       - REDIS_HOST=redis:6379
     depends_on:

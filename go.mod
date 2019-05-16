@@ -8,6 +8,7 @@ require (
 	github.com/fatih/color v1.7.0 // indirect
 	github.com/gin-gonic/gin v1.4.0
 	github.com/go-redis/redis v6.15.2+incompatible
+	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/golangci/golangci-lint v1.16.0
 	github.com/google/go-github/v25 v25.0.2
 	github.com/google/uuid v1.1.1 // indirect

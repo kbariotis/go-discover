@@ -95,7 +95,7 @@ func main() {
 	}
 
 	// create neo db
-	time.Sleep(time.Second * 30)
+	time.Sleep(time.Second * 5)
 	graphDB, err := neoism.Connect(cfg.NeoHost)
 	if err != nil {
 		logger.WithError(err).Fatal("could not create neo client")
@@ -159,7 +159,12 @@ func main() {
 	}
 
 	// constrcut api
-	api := api.NewAPI(suggestionStore)
+	api := api.NewAPI(
+		suggestionStore,
+		cfg.GithubClientID,
+		cfg.GithubClientSecret,
+		cfg.GithubCallbackURL,
+	)
 
 	// start api on the background
 	go api.Serve(cfg.APIBindAddress)

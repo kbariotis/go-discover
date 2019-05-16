@@ -317,16 +317,16 @@ func (c *Crawler) Start(ctx context.Context) error {
 	// serially process events to reduce strain on the github api
 	// TODO introduce workers and proper request throttling for the api
 	followerPollTicker := time.NewTicker(c.followerPollInterval)
-	followerPollFirstPoll := time.After(0)
+	// followerPollFirstPoll := time.After(0)
 	for {
 		select {
 		case <-cctx.Done():
 			return nil
 
-		case <-followerPollFirstPoll:
-			if err := c.processOwnFollowers(); err != nil {
-				logger.WithError(err).Warn("first time processOwnFollowers failed")
-			}
+		// case <-followerPollFirstPoll:
+		// 	if err := c.processOwnFollowers(); err != nil {
+		// 		logger.WithError(err).Warn("first time processOwnFollowers failed")
+		// 	}
 
 		case <-followerPollTicker.C:
 			if err := c.processOwnFollowers(); err != nil {

@@ -6,21 +6,51 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gofrs/uuid"
 	"github.com/google/go-github/v25/github"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
+	githuboauth "golang.org/x/oauth2/github"
 
 	"github.com/kbariotis/go-discover/internal/model"
 	"github.com/kbariotis/go-discover/internal/store"
 )
 
 const (
-	queryParamGithubToken = "github_token"
+	githubCallbackQueryParam = "code"
 )
 
 // API -
 type API struct {
 	suggestionStore store.SuggestionStore
+	githubClient    *github.Client
+	oauthConfig     *oauth2.Config
+}
+
+// NewAPI -
+func NewAPI(
+	suggestionStore store.SuggestionStore,
+	githubClientID string,
+	githubClientSecret string,
+	githubCallbackURL string,
+) *API {
+	oauthCfg := &oauth2.Config{
+		ClientID:     githubClientID,
+		ClientSecret: githubClientSecret,
+		Endpoint:     githuboauth.Endpoint,
+		RedirectURL:  githubCallbackURL,
+		Scopes: []string{
+			"user:email",
+		},
+	}
+
+	api := &API{
+		suggestionStore: suggestionStore,
+		oauthConfig:     oauthCfg,
+	}
+
+	return api
 }
 
 // HandleHealth -
@@ -28,15 +58,6 @@ func (api *API) HandleHealth(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
 	})
-}
-
-// NewAPI -
-func NewAPI(suggestionStore store.SuggestionStore) *API {
-	api := &API{
-		suggestionStore: suggestionStore,
-	}
-
-	return api
 }
 
 func newGithubClientWithUserToken(
@@ -56,13 +77,65 @@ func newGithubClientWithUserToken(
 	return ghClient
 }
 
-// HandlePostUsers -
-func (api *API) HandlePostUsers(c *gin.Context) {
+// HandleGetRoot -
+func (api *API) HandleGetRoot(c *gin.Context) {
+	state, _ := uuid.NewV4()
+	url := api.oauthConfig.AuthCodeURL(state.String())
+	c.HTML(http.StatusOK, "index.html", struct {
+		GithubLoginURL string
+	}{
+		GithubLoginURL: url,
+	})
+}
+
+// HandleGetGithubCallback -
+func (api *API) HandleGetGithubCallback(c *gin.Context) {
 	logger := logrus.WithFields(logrus.Fields{
-		"logger": "api/api.HandlePostUsers",
+		"logger": "api/api.HandleGetGithubCallback",
 	})
 
-	logger.Info("handling")
+	values := &struct {
+		ErrorMessage string
+		User         *model.User
+	}{}
+
+	token, err := api.oauthConfig.Exchange(
+		oauth2.NoContext,
+		c.Query(githubCallbackQueryParam),
+	)
+	if err != nil {
+		values.ErrorMessage = "Could not exchange token"
+		c.String(http.StatusBadRequest, "github_callback.html", values)
+		logger.WithError(err).Warn("Could not exchange token")
+		return
+	}
+
+	if !token.Valid() {
+		values.ErrorMessage = "Invalid token"
+		c.String(http.StatusBadRequest, "github_callback.html", values)
+		logger.Warn("Invalid token")
+		return
+	}
+
+	user, err := api.registerUser(token.AccessToken)
+	if err != nil {
+		values.ErrorMessage = "Could not register user"
+		c.String(http.StatusBadRequest, "github_callback.html", values)
+		logger.WithError(err).Warn("Could not register user")
+		return
+	}
+
+	values.User = user
+	c.HTML(http.StatusOK, "github_callback.html", values)
+}
+
+// registerUser -
+func (api *API) registerUser(githubToken string) (*model.User, error) {
+	logger := logrus.WithFields(logrus.Fields{
+		"logger": "api/api.registerUser",
+	})
+
+	logger.Info("trying to register user")
 
 	ctx, cf := context.WithTimeout(
 		context.Background(),
@@ -70,15 +143,11 @@ func (api *API) HandlePostUsers(c *gin.Context) {
 	)
 	defer cf()
 
-	githubToken := c.Query(queryParamGithubToken)
 	githubClient := newGithubClientWithUserToken(ctx, githubToken)
 
-	ghUser, res, err := githubClient.Users.Get(ctx, "")
+	ghUser, _, err := githubClient.Users.Get(ctx, "")
 	if err != nil {
-		logger.WithError(err).Info("could not list user's profile")
-		// TODO don't use the code we got from github, map it to an internal
-		c.JSON(res.StatusCode, nil)
-		return
+		return nil, errors.Wrap(err, "could not get user profile")
 	}
 
 	user := &model.User{
@@ -87,16 +156,13 @@ func (api *API) HandlePostUsers(c *gin.Context) {
 	}
 
 	if user.Email == "" {
-		ghEmails, res, err := githubClient.Users.
+		ghEmails, _, err := githubClient.Users.
 			ListEmails(
 				ctx,
 				&github.ListOptions{},
 			)
 		if err != nil {
-			logger.WithError(err).Info("could not list user's emails")
-			// TODO don't use the code we got from github, map it to an internal
-			c.JSON(res.StatusCode, nil)
-			return
+			return nil, errors.Wrap(err, "could not list user's emails")
 		}
 
 		for _, email := range ghEmails {
@@ -108,31 +174,29 @@ func (api *API) HandlePostUsers(c *gin.Context) {
 	}
 
 	if user.Name == "" || user.Email == "" {
-		logger.WithField("user", user).Info("missing login or email")
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "missing login or email",
-		})
-		return
+		return nil, errors.Wrap(err, "missing name or email")
 	}
 
 	if err := api.suggestionStore.PutUser(user); err != nil {
-		logger.WithError(err).Error("could not put user")
-		c.JSON(http.StatusInternalServerError, nil)
-		return
+		return nil, errors.Wrap(err, "could not persist user")
 	}
 
-	c.JSON(http.StatusOK, nil)
+	return user, nil
 }
 
 // Serve API endpoints
 func (api *API) Serve(address string) error {
 	r := gin.Default()
 
+	// load templates
+	r.LoadHTMLGlob("templates/*")
+
 	// ops endpoints
 	r.GET("/healthz", api.HandleHealth)
 
-	// public endpoints
-	r.POST("/users", api.HandlePostUsers)
+	// frontend endpoits
+	r.GET("/", api.HandleGetRoot)
+	r.GET("/github/callback", api.HandleGetGithubCallback)
 
 	return r.Run(address)
 }

@@ -44,6 +44,7 @@ func New(
 
 	crw := &Crawler{
 		graphStore:           graphStore,
+		suggestionStore:      suggestionStore,
 		cache:                cache,
 		provider:             provider,
 		followerPollInterval: followerPollInterval,

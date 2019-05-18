@@ -69,48 +69,6 @@ func (g *Github) GetUserStars(ctx context.Context, name string) ([]model.Starred
 	return stars, nil
 }
 
-// GetUserFollowers returnes the user's followers
-func (g *Github) GetUserFollowers(ctx context.Context, name string) ([]string, error) {
-	logger := logrus.WithFields(logrus.Fields{
-		"logger":     "providers/Github.GetUserFollowers",
-		"user.login": name,
-	})
-
-	logger.Info("getting user's followers")
-
-	followers := []string{}
-
-	currentPage := 1
-	for currentPage != 0 {
-		opts := &github.ListOptions{
-			Page:    currentPage,
-			PerPage: 100,
-		}
-
-		moreFollowers, res, err := g.client.Users.ListFollowers(ctx, name, opts)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not retrieve user's followers")
-		}
-
-		logger.
-			WithFields(logrus.Fields{
-				"current_page":  currentPage,
-				"count":         len(followers),
-				"res.code":      res.StatusCode,
-				"res.next_page": res.NextPage,
-			}).
-			Debug("got followers")
-
-		for _, follower := range moreFollowers {
-			followers = append(followers, follower.GetLogin())
-		}
-
-		currentPage = res.NextPage
-	}
-
-	return followers, nil
-}
-
 // GetUserFollowees returnes the user's followees
 func (g *Github) GetUserFollowees(ctx context.Context, name string) ([]string, error) {
 	logger := logrus.WithFields(logrus.Fields{

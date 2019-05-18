@@ -78,18 +78,14 @@ run: build
 .PHONY: docker-compose
 docker-compose: vendor
 	$(info Running docker-compose)
-	docker-compose stop
-	docker-compose rm -f
-	docker-compose down
-	docker-compose build
-	docker-compose run --rm discover
+	docker-compose up --build -d
 
 # Run test suite
 .PHONY: test
 test: tools
 	$(info Running tests)
 	go test $(V) -count=1 --race -covermode=atomic ./...
- 
+
 # Clean temp things
 .PHONY: clean
 clean:

@@ -11,7 +11,6 @@ import (
 // with testing.
 type Provider interface {
 	GetUserStars(context.Context, string) ([]model.StarredRepository, error)
-	GetUserFollowers(context.Context, string) ([]string, error)
 	GetUserFollowees(context.Context, string) ([]string, error)
 	GetUserRepositories(context.Context, string) ([]string, error)
 	GetRepository(context.Context, string) (*model.Repository, error)

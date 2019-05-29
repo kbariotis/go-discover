@@ -18,9 +18,10 @@ import (
 type Crawler struct {
 	followerPollInterval time.Duration
 
-	store    store.GraphStore
-	cache    cache.Cache
-	provider provider.Provider
+	graphStore      store.GraphStore
+	suggestionStore store.SuggestionStore // Rename because it includes all SQL store
+	cache           cache.Cache
+	provider        provider.Provider
 
 	userOnboardingQueue queue.Queue
 	userFolloweeQueue   queue.Queue
@@ -31,7 +32,8 @@ type Crawler struct {
 // New constructs a Github crawler
 func New(
 	followerPollInterval time.Duration,
-	store store.GraphStore,
+	graphStore store.GraphStore,
+	suggestionStore store.SuggestionStore,
 	cache cache.Cache,
 	provider provider.Provider,
 	userOnboardingQueue queue.Queue,
@@ -41,7 +43,8 @@ func New(
 ) (*Crawler, error) {
 
 	crw := &Crawler{
-		store:                store,
+		graphStore:           graphStore,
+		suggestionStore:      suggestionStore,
 		cache:                cache,
 		provider:             provider,
 		followerPollInterval: followerPollInterval,
@@ -54,33 +57,31 @@ func New(
 	return crw, nil
 }
 
-// processOwnFollowers processes our own followers
-func (c *Crawler) processOwnFollowers() error {
-	ctx := context.Background()
-
+// processRegisteredUsers processes our own followers
+func (c *Crawler) processRegisteredUsers() error {
 	logger := logrus.WithFields(logrus.Fields{
-		"logger": "crawler/Github.processOwnFollowers",
+		"logger": "crawler/Github.processRegisteredUsers",
 	})
 
-	logger.Info("processing own followers, listing own followers")
+	logger.Info("processing registered users")
 
-	// get own followers and push them to the userOnboarding queue
-	followers, err := c.provider.GetUserFollowers(ctx, "")
+	// get users and push them to the userOnboarding queue
+	users, err := c.suggestionStore.GetAllUsers()
 	if err != nil {
-		return errors.Wrap(err, "could not retrieve own followers")
+		return errors.Wrap(err, "could not retrieve users")
 	}
 
-	for _, follower := range followers {
+	for _, user := range users {
 		logger.
-			WithField("follower", follower).
-			Debug("got follower, pushing to userOnboardingQueue")
+			WithField("user", user).
+			Debug("got user, pushing to userOnboardingQueue")
 
 		userOnboardingTask := &model.UserOnboardingTask{
-			Name: follower,
+			Name: user.Name,
 		}
 
 		if err := c.userOnboardingQueue.Push(userOnboardingTask); err != nil {
-			return errors.Wrap(err, "could not add follower task to queue")
+			return errors.Wrap(err, "could not add user task to queue")
 		}
 	}
 
@@ -130,13 +131,13 @@ func (c *Crawler) handleUserOnboardingTask(task *model.UserOnboardingTask) error
 		}
 	}
 
-	// upsert the user to the c.store
+	// upsert the user to the c.graphStore
 	user := &model.User{
 		Name:      task.Name,
 		Followees: followees,
 	}
 
-	if err := c.store.PutUser(user); err != nil {
+	if err := c.graphStore.PutUser(user); err != nil {
 		return errors.Wrap(err, "could not persist user")
 	}
 
@@ -183,13 +184,13 @@ func (c *Crawler) handleUserFolloweeTask(task *model.UserFolloweeTask) error {
 
 	// TODO fetch user's repositories
 
-	// upsert the user to the c.store
+	// upsert the user to the c.graphStore
 	user := &model.User{
 		Name:  task.Name,
 		Stars: stars,
 	}
 
-	if err := c.store.PutUser(user); err != nil {
+	if err := c.graphStore.PutUser(user); err != nil {
 		return errors.Wrap(err, "could not persist user")
 	}
 
@@ -235,7 +236,7 @@ func (c *Crawler) handleRepositoryTask(task *model.RepositoryTask) error {
 	}
 
 	// upsert the repository
-	if err := c.store.PutRepository(repository); err != nil {
+	if err := c.graphStore.PutRepository(repository); err != nil {
 		return errors.Wrap(err, "could not store repository")
 	}
 
@@ -324,13 +325,13 @@ func (c *Crawler) Start(ctx context.Context) error {
 			return nil
 
 		// case <-followerPollFirstPoll:
-		// 	if err := c.processOwnFollowers(); err != nil {
-		// 		logger.WithError(err).Warn("first time processOwnFollowers failed")
+		// 	if err := c.processRegisteredUsers(); err != nil {
+		// 		logger.WithError(err).Warn("first time processRegisteredUsers failed")
 		// 	}
 
 		case <-followerPollTicker.C:
-			if err := c.processOwnFollowers(); err != nil {
-				logger.WithError(err).Warn("processOwnFollowers failed")
+			if err := c.processRegisteredUsers(); err != nil {
+				logger.WithError(err).Warn("processRegisteredUsers failed")
 			}
 
 		case task := <-userOnboardingTasks:

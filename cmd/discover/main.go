@@ -95,7 +95,7 @@ func main() {
 	}
 
 	// create neo db
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 30)
 	graphDB, err := neoism.Connect(cfg.NeoHost)
 	if err != nil {
 		logger.WithError(err).Fatal("could not create neo client")
@@ -173,6 +173,7 @@ func main() {
 	crw, err := crawler.New(
 		time.Minute*5,
 		graphStore,
+		suggestionStore,
 		redis,
 		prv,
 		userOnboardingQueue,

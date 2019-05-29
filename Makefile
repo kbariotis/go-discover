@@ -82,14 +82,14 @@ docker-compose: vendor
 	docker-compose rm -f
 	docker-compose down
 	docker-compose build
-	docker-compose run --rm discover
+	docker-compose run --service-ports --rm discover
 
 # Run test suite
 .PHONY: test
 test: tools
 	$(info Running tests)
 	go test $(V) -count=1 --race -covermode=atomic ./...
- 
+
 # Clean temp things
 .PHONY: clean
 clean:

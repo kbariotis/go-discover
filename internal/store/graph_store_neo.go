@@ -42,8 +42,7 @@ const (
 			MERGE (u)-[:IsFollowing]->(f)
 		)
 		WITH u
-		WITH {{ toObject .Stars }} AS stars
-		FOREACH (star IN stars |
+		FOREACH (star IN {{ toObject .Stars }} |
 			MERGE (r:Repository {name: star.repository})
 			MERGE (u)-[:HasStarred {starredAt: star.starredAt}]->(r)
 		)

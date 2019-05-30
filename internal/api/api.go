@@ -24,6 +24,7 @@ const (
 // API -
 type API struct {
 	suggestionStore store.SuggestionStore
+	graphStore      store.GraphStore
 	githubClient    *github.Client
 	oauthConfig     *oauth2.Config
 }
@@ -31,6 +32,7 @@ type API struct {
 // NewAPI -
 func NewAPI(
 	suggestionStore store.SuggestionStore,
+	graphStore store.GraphStore,
 	githubClientID string,
 	githubClientSecret string,
 	githubCallbackURL string,
@@ -47,6 +49,7 @@ func NewAPI(
 
 	api := &API{
 		suggestionStore: suggestionStore,
+		graphStore:      graphStore,
 		oauthConfig:     oauthCfg,
 	}
 
@@ -129,6 +132,35 @@ func (api *API) HandleGetGithubCallback(c *gin.Context) {
 	c.HTML(http.StatusOK, "github_callback.html", values)
 }
 
+// HandleGetUserSuggestions -
+func (api *API) HandleGetUserSuggestions(c *gin.Context) {
+	logger := logrus.WithFields(logrus.Fields{
+		"logger": "api/api.HandleGetUserSuggestions",
+	})
+
+	user, err := api.suggestionStore.GetUser("kbariotis")
+	if err != nil {
+		logger.WithError(err).Warn("Could not register user")
+		c.JSON(200, gin.H{
+			"message": "pong",
+		})
+		return
+	}
+
+	suggestion, err = api.graphStore.GetUserSuggestion(user)
+	if err != nil {
+		logger.WithError(err).Warn("Could not register user")
+		c.JSON(200, gin.H{
+			"message": "pong",
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"message": suggestion,
+	})
+}
+
 // registerUser -
 func (api *API) registerUser(githubToken string) (*model.User, error) {
 	logger := logrus.WithFields(logrus.Fields{
@@ -196,6 +228,7 @@ func (api *API) Serve(address string) error {
 
 	// frontend endpoits
 	r.GET("/", api.HandleGetRoot)
+	r.GET("/suggestions", api.HandleGetUserSuggestions)
 	r.GET("/github/callback", api.HandleGetGithubCallback)
 
 	return r.Run(address)

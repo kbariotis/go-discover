@@ -218,7 +218,7 @@ func (neo *Neo) PutUser(user *model.User) error {
 }
 
 // GetUserSuggestion get user suggestions
-func (neo *Neo) GetUserSuggestion(user *model.User) (model.Suggestion, error) {
+func (neo *Neo) GetUserSuggestion(user *model.User) (*model.Suggestion, error) {
 	logger := logrus.WithFields(logrus.Fields{
 		"logger":    "store/Neo.GetUserSuggestion",
 		"user.name": user.Name,
@@ -234,13 +234,13 @@ func (neo *Neo) GetUserSuggestion(user *model.User) (model.Suggestion, error) {
 		New("neoGetUserSuggestionQuery").
 		Parse(neoGetTopStarredRepositories)
 	if err != nil {
-		return model.Suggestion{}, errors.Wrap(err, "could not parse template")
+		return &model.Suggestion{}, errors.Wrap(err, "could not parse template")
 	}
 
 	// render query
 	query := &bytes.Buffer{}
 	if err := neoGetUserSuggestionQuery.Execute(query, user); err != nil {
-		return model.Suggestion{}, errors.Wrap(err, "could not execute query")
+		return &model.Suggestion{}, errors.Wrap(err, "could not execute query")
 	}
 
 	logger.WithField("query", query).Debug("running query")
@@ -257,7 +257,7 @@ func (neo *Neo) GetUserSuggestion(user *model.User) (model.Suggestion, error) {
 		Result:     &res,
 	}
 	if err := neo.db.Cypher(cypherQuery); err != nil {
-		return model.Suggestion{}, errors.Wrap(err, "could not run cypher query")
+		return &model.Suggestion{}, errors.Wrap(err, "could not run cypher query")
 	}
 
 	// log query time
@@ -265,7 +265,7 @@ func (neo *Neo) GetUserSuggestion(user *model.User) (model.Suggestion, error) {
 		WithField("execution_time", time.Now().Sub(startTime)).
 		Debug("query execution finished")
 
-	return model.Suggestion{
+	return &model.Suggestion{
 		UserID:   user.Name,
 		DateTime: time.Now(),
 		Items: []model.SuggestionItem{

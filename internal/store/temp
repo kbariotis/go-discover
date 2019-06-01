@@ -1,9 +1,0 @@
-MATCH (user:User)-[:IsFollowing]->(:User)-[starred:HasStarred]->(repository:Repository)
-WHERE user.name = "kbariotis"
-RETURN user, count(starred) as noOfFollowees, repository
-ORDER BY noOfFollowees DESC
-
-
-MATCH (user:User)-[starred:HasStarred]->(repository:Repository)
-WHERE user.name = "kbariotis"
-RETURN repository

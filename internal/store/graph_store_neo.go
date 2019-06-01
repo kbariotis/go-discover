@@ -51,9 +51,10 @@ const (
 	// TODO add dates between starredAt
 	neoGetTopStarredRepositories = `
     MATCH (user:User)-[:IsFollowing]->(:User)-[starred:HasStarred]->(repository:Repository)
-    WHERE user.name = ""{{ .Name }}""
-    RETURN count(starred) as noOfFollowees, repository
+    WHERE user.name = "{{ .Name }}"
+    RETURN count(starred) as noOfFollowees, repository.name
     ORDER BY noOfFollowees DESC
+    LIMIT 5
 	`
 )
 
@@ -246,8 +247,8 @@ func (neo *Neo) GetUserSuggestion(user *model.User) (*model.Suggestion, error) {
 	logger.WithField("query", query).Debug("running query")
 
 	res := []struct {
-		noOfFollowees int    // `json:"a.name"`
-		repository    string // `json:"type(r)"`
+		NoOfFollowees int    `json:"noOfFollowees"`
+		Repository    string `json:"repository.name"`
 	}{}
 
 	// run query
@@ -270,11 +271,9 @@ func (neo *Neo) GetUserSuggestion(user *model.User) (*model.Suggestion, error) {
 		DateTime: time.Now(),
 		Items: []model.SuggestionItem{
 			{
-				// SuggestionID:
-				// ID:
 				Type:   "repository",
-				Value:  res[0].repository,
-				Reason: strconv.Itoa(res[0].noOfFollowees) + " followers starred it",
+				Value:  res[0].Repository,
+				Reason: strconv.Itoa(res[0].NoOfFollowees) + " followers starred it",
 			},
 		},
 	}, nil

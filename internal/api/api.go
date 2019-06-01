@@ -140,16 +140,16 @@ func (api *API) HandleGetUserSuggestions(c *gin.Context) {
 
 	user, err := api.suggestionStore.GetUser("kbariotis")
 	if err != nil {
-		logger.WithError(err).Warn("Could not register user")
+		logger.WithError(err).Warn("Could not get user")
 		c.JSON(200, gin.H{
 			"message": "pong",
 		})
 		return
 	}
 
-	suggestion, err = api.graphStore.GetUserSuggestion(user)
+	suggestion, err := api.graphStore.GetUserSuggestion(user)
 	if err != nil {
-		logger.WithError(err).Warn("Could not register user")
+		logger.WithError(err).Warn("Could not get suggestions")
 		c.JSON(200, gin.H{
 			"message": "pong",
 		})

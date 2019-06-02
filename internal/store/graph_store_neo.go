@@ -51,7 +51,7 @@ const (
 	// TODO add dates between starredAt
 	neoGetTopStarredRepositories = `
     MATCH (user:User)-[:IsFollowing]->(:User)-[starred:HasStarred]->(repository:Repository)
-    WHERE user.name = "{{ .Name }}"
+    WHERE user.name = "{{ .Name }}" AND starred.starredAt > {{ .Timestamp }}
     RETURN count(starred) as noOfFollowees, repository.name
     ORDER BY noOfFollowees DESC
     LIMIT 5
@@ -240,7 +240,14 @@ func (neo *Neo) GetUserSuggestion(user *model.User) (*model.Suggestion, error) {
 
 	// render query
 	query := &bytes.Buffer{}
-	if err := neoGetUserSuggestionQuery.Execute(query, user); err != nil {
+	type InputQuery struct {
+		Name      string
+		Timestamp int64
+	}
+	if err := neoGetUserSuggestionQuery.Execute(query, InputQuery{
+		Name:      user.Name,
+		Timestamp: startTime.Add(time.Hour * 24 * -7).Unix(),
+	}); err != nil {
 		return &model.Suggestion{}, errors.Wrap(err, "could not execute query")
 	}
 
@@ -266,15 +273,19 @@ func (neo *Neo) GetUserSuggestion(user *model.User) (*model.Suggestion, error) {
 		WithField("execution_time", time.Now().Sub(startTime)).
 		Debug("query execution finished")
 
+	suggestions := make([]model.SuggestionItem, len(res))
+
+	for k, _ := range res {
+		suggestions[k] = model.SuggestionItem{
+			Type:   "repository",
+			Value:  res[k].Repository,
+			Reason: strconv.Itoa(res[k].NoOfFollowees) + " followers starred it",
+		}
+	}
+
 	return &model.Suggestion{
 		UserID:   user.Name,
 		DateTime: time.Now(),
-		Items: []model.SuggestionItem{
-			{
-				Type:   "repository",
-				Value:  res[0].Repository,
-				Reason: strconv.Itoa(res[0].NoOfFollowees) + " followers starred it",
-			},
-		},
+		Items:    suggestions,
 	}, nil
 }

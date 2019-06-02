@@ -157,7 +157,8 @@ func (api *API) HandleGetUserSuggestions(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{
-		"message": suggestion,
+		"success":  true,
+		"response": suggestion.Items,
 	})
 }
 

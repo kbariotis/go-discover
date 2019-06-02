@@ -3,6 +3,8 @@ FROM golang:1.12
 WORKDIR /src
 ADD . /src
 
+VOLUME ./local /src/local
+
 EXPOSE 8080
 
 CMD ["go", "run", "-mod=vendor", "./cmd/discover"]

@@ -1,25 +1,19 @@
 version: "2.1"
 services:
   discover:
+    container_name: discover
     build:
       context: ./
       dockerfile: Dockerfile.local
-    env_file: .env
+    env_file:
+      - .env
     links:
       - neo
       - redis
     ports:
       - 8080:8080
     volumes:
-      - ./local:/local
-    environment:
-      - LOG_LEVEL=DEBUG
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
-      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
-      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
-      - QUEUE_STORE_DIR=./
-      - NEO4J_HOST=http://neo4j:foobar@neo:7474/db/data
-      - REDIS_HOST=redis:6379
+      - ./local:/src/local
     depends_on:
       neo:
         condition: service_healthy
@@ -27,6 +21,7 @@ services:
         condition: service_healthy
 
   redis:
+    container_name: discover_redis
     image: redis:5.0
     ports:
       - 6379
@@ -38,6 +33,7 @@ services:
       timeout: 10s
       retries: 3
   neo:
+    container_name: discover_neo
     image: neo4j:3.0
     ports:
       - 7474:7474

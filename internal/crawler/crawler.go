@@ -23,10 +23,11 @@ type Crawler struct {
 	cache           cache.Cache
 	provider        provider.Provider
 
-	userOnboardingQueue queue.Queue
-	userFolloweeQueue   queue.Queue
-	userQueue           queue.Queue
-	repositoryQueue     queue.Queue
+	userOnboardingQueue       queue.Queue
+	userFolloweeQueue         queue.Queue
+	suggestionExtractionQueue queue.Queue
+	userQueue                 queue.Queue
+	repositoryQueue           queue.Queue
 }
 
 // New constructs a Github crawler
@@ -36,6 +37,7 @@ func New(
 	suggestionStore store.SuggestionStore,
 	cache cache.Cache,
 	provider provider.Provider,
+	suggestionExtractionQueue queue.Queue,
 	userOnboardingQueue queue.Queue,
 	userFolloweeQueue queue.Queue,
 	userQueue queue.Queue,
@@ -43,15 +45,16 @@ func New(
 ) (*Crawler, error) {
 
 	crw := &Crawler{
-		graphStore:           graphStore,
-		suggestionStore:      suggestionStore,
-		cache:                cache,
-		provider:             provider,
-		followerPollInterval: followerPollInterval,
-		userOnboardingQueue:  userOnboardingQueue,
-		userFolloweeQueue:    userFolloweeQueue,
-		userQueue:            userQueue,
-		repositoryQueue:      repositoryQueue,
+		graphStore:                graphStore,
+		suggestionStore:           suggestionStore,
+		cache:                     cache,
+		provider:                  provider,
+		followerPollInterval:      followerPollInterval,
+		suggestionExtractionQueue: suggestionExtractionQueue,
+		userOnboardingQueue:       userOnboardingQueue,
+		userFolloweeQueue:         userFolloweeQueue,
+		userQueue:                 userQueue,
+		repositoryQueue:           repositoryQueue,
 	}
 
 	return crw, nil
@@ -81,6 +84,63 @@ func (c *Crawler) processRegisteredUsers() error {
 		}
 
 		if err := c.userOnboardingQueue.Push(userOnboardingTask); err != nil {
+			return errors.Wrap(err, "could not add user task to queue")
+		}
+	}
+
+	return nil
+}
+
+// handleSuggestionExtractionTask extracts suggestions for each user
+func (c *Crawler) handleSuggestionExtractionTask(task *model.SuggestionExtractionTask) error {
+	logger := logrus.WithFields(logrus.Fields{
+		"logger": "crawler/Github.handleSuggestionExtractionTask",
+	})
+
+	logger.Info("extracting suggestions")
+
+	// get users and push them to the suggestionExtraction queue
+	user, err := c.suggestionStore.GetUser(task.UserName)
+	if err != nil {
+		return errors.Wrap(err, "could not retrieve user")
+	}
+
+	suggestion, err := c.graphStore.GetUserSuggestion(user)
+	if err != nil {
+		return errors.Wrap(err, "could not extract suggestions")
+	}
+
+	if err := c.suggestionStore.PutSuggestion(suggestion); err != nil {
+		return errors.Wrap(err, "could not put suggestion")
+	}
+
+	return nil
+}
+
+// extractSuggestions feed the suggestionExtractionQueue
+func (c *Crawler) extractSuggestions() error {
+	logger := logrus.WithFields(logrus.Fields{
+		"logger": "crawler/Github.handleSuggestionExtractionTask",
+	})
+
+	logger.Info("processing registered users")
+
+	// get users and push them to the suggestionExtraction queue
+	users, err := c.suggestionStore.GetAllUsers()
+	if err != nil {
+		return errors.Wrap(err, "could not retrieve users")
+	}
+
+	for _, user := range users {
+		logger.
+			WithField("user", user).
+			Debug("got user, pushing to suggestionExtractionQueue")
+
+		suggestionExtractionTask := &model.SuggestionExtractionTask{
+			UserName: user.Name,
+		}
+
+		if err := c.suggestionExtractionQueue.Push(suggestionExtractionTask); err != nil {
 			return errors.Wrap(err, "could not add user task to queue")
 		}
 	}
@@ -250,6 +310,7 @@ func (c *Crawler) Start(ctx context.Context) error {
 		"logger": "crawler/Github.Start",
 	})
 
+	suggestionExtractionTasks := make(chan *model.SuggestionExtractionTask, 10000)
 	userOnboardingTasks := make(chan *model.UserOnboardingTask, 10000)
 	userFolloweeTasks := make(chan *model.UserFolloweeTask, 10000)
 	userTasks := make(chan *model.UserTask, 10000)
@@ -266,6 +327,21 @@ func (c *Crawler) Start(ctx context.Context) error {
 			}
 			if okTask, ok := task.(*model.UserOnboardingTask); ok {
 				userOnboardingTasks <- okTask
+			}
+		}
+	}()
+
+	// pop tasks from suggestionExtractionTasks and push them to a local channel
+	go func() {
+		logger.Info("starting to pop tasks from suggestionExtractionTasks")
+		for {
+			task, _ := c.suggestionExtractionQueue.Pop() // TODO handle error
+			if task == nil {
+				time.Sleep(time.Second)
+				continue
+			}
+			if okTask, ok := task.(*model.SuggestionExtractionTask); ok {
+				suggestionExtractionTasks <- okTask
 			}
 		}
 	}()
@@ -315,19 +391,18 @@ func (c *Crawler) Start(ctx context.Context) error {
 		}
 	}()
 
-	// serially process events to reduce strain on the github api
-	// TODO introduce workers and proper request throttling for the api
 	followerPollTicker := time.NewTicker(c.followerPollInterval)
-	// followerPollFirstPoll := time.After(0)
+	extractSuggestionsTicker := time.NewTicker(time.Hour * 24 * 7)
+
 	for {
 		select {
 		case <-cctx.Done():
 			return nil
 
-		// case <-followerPollFirstPoll:
-		// 	if err := c.processRegisteredUsers(); err != nil {
-		// 		logger.WithError(err).Warn("first time processRegisteredUsers failed")
-		// 	}
+		case <-extractSuggestionsTicker.C:
+			if err := c.extractSuggestions(); err != nil {
+				logger.WithError(err).Warn("extractSuggestions failed")
+			}
 
 		case <-followerPollTicker.C:
 			if err := c.processRegisteredUsers(); err != nil {
@@ -337,6 +412,11 @@ func (c *Crawler) Start(ctx context.Context) error {
 		case task := <-userOnboardingTasks:
 			if err := c.handleUserOnboardingTask(task); err != nil {
 				logger.WithError(err).Warn("failed to handle model.UserOnboardingTask")
+			}
+
+		case task := <-suggestionExtractionTasks:
+			if err := c.handleSuggestionExtractionTask(task); err != nil {
+				logger.WithError(err).Warn("failed to handle model.SuggestionExtractionTask")
 			}
 
 		case task := <-userFolloweeTasks:

@@ -67,6 +67,15 @@ func main() {
 		logger.WithError(err).Fatal("could not create dqueue for userOnboarding")
 	}
 
+	suggestionExtractionQueue, err := queue.NewDQueue(
+		"suggestionExtraction.queue",
+		cfg.QueueStoreDir,
+		&model.SuggestionExtractionTask{},
+	)
+	if err != nil {
+		logger.WithError(err).Fatal("could not create dqueue for suggestionExtraction")
+	}
+
 	userFolloweeQueue, err := queue.NewDQueue(
 		"userFollowee.queue",
 		cfg.QueueStoreDir,
@@ -165,6 +174,7 @@ func main() {
 		suggestionStore,
 		redis,
 		prv,
+		suggestionExtractionQueue,
 		userOnboardingQueue,
 		userFolloweeQueue,
 		userQueue,

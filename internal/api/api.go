@@ -157,7 +157,6 @@ func (api *API) HandleGetUserSuggestions(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{
-		"success":  true,
 		"response": suggestion.Items,
 	})
 }
@@ -229,7 +228,7 @@ func (api *API) Serve(address string) error {
 
 	// frontend endpoits
 	r.GET("/", api.HandleGetRoot)
-	r.GET("/suggestions", api.HandleGetUserSuggestions)
+	r.GET("/suggestions/latest", api.HandleGetUserSuggestions)
 	r.GET("/github/callback", api.HandleGetGithubCallback)
 
 	return r.Run(address)

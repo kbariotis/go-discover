@@ -136,6 +136,42 @@ func (g *Github) GetRepository(ctx context.Context, name string) (*model.Reposit
 
 	logger.Debug("got repository")
 
+	stars := []model.UserStar{}
+
+	currentPage := 1
+	for currentPage != 0 {
+		opts := &github.ListOptions{
+			Page:    currentPage,
+			PerPage: 100,
+		}
+
+		mporeStars, res, err := g.client.Activity.ListStargazers(ctx, repoOwner, repoName, opts)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not retrieve repo's stars")
+		}
+
+		logger.
+			WithFields(logrus.Fields{
+				"current_page":  currentPage,
+				"count":         len(stars),
+				"res.code":      res.StatusCode,
+				"res.next_page": res.NextPage,
+			}).
+			Debug("got repo's stars")
+
+		for _, user := range mporeStars {
+			stars = append(
+				stars,
+				model.UserStar{
+					User:      user.GetUser().GetLogin(),
+					StarredAt: user.StarredAt.Unix(),
+				},
+			)
+		}
+
+		currentPage = res.NextPage
+	}
+
 	topics, _, err := g.client.Repositories.ListAllTopics(ctx, repoOwner, repoName)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not retrieve topics")
@@ -146,6 +182,7 @@ func (g *Github) GetRepository(ctx context.Context, name string) (*model.Reposit
 	mRepo := &model.Repository{
 		Name:   name,
 		Labels: topics,
+		Stars:  stars,
 		Languages: []string{
 			repo.GetLanguage(),
 		},

@@ -33,6 +33,11 @@ const (
 			MERGE (l:Label {name: language})
 			MERGE (r)-[:ContainsLanguage]->(l)
 		)
+		WITH r
+		FOREACH (star IN {{ toObject .Stars }} |
+			MERGE (u:User {name: star.user})
+			MERGE (u)-[:HasStarred {starredAt: star.starredAt}]->(r)
+		)
 	`
 	// TODO stars should also be
 	neoPutUserQueryTemplate = `
@@ -70,6 +75,7 @@ var (
 func neoToNeoObject(m interface{}) string {
 	bytes, _ := json.Marshal(m)
 	json := string(bytes)
+	json = strings.Replace(json, `"user"`, "`user`", -1)
 	json = strings.Replace(json, `"repository"`, "`repository`", -1)
 	json = strings.Replace(json, `"starredAt"`, "`starredAt`", -1)
 
@@ -121,6 +127,7 @@ func (neo *Neo) PutRepository(repository *model.Repository) error {
 	logger := logrus.WithFields(logrus.Fields{
 		"logger":                     "store/Neo.PutRepository",
 		"repository.name":            repository.Name,
+		"repository.stars.count":     len(repository.Stars),
 		"repository.labels.count":    len(repository.Labels),
 		"repository.languages.count": len(repository.Languages),
 	})

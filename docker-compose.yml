@@ -8,6 +8,10 @@ services:
     command: go run -mod=vendor ./cmd/crawler
     env_file:
       - .env
+    environment:
+      - QUEUE_STORE_DIR=./
+      - NEO4J_HOST=http://neo4j:foobar@neo:7474/db/data
+      - REDIS_HOST=redis:6379
     links:
       - neo
       - redis

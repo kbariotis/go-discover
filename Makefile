@@ -1,9 +1,10 @@
-MODULE   := github.com/kbariotis/go-discover
-LDFLAGS  := -w -s
-GOBIN    := $(CURDIR)/bin
-PATH     := $(GOBIN):$(PATH)
-NAME     := discover
-VERSION  := unknown
+MODULE       := github.com/kbariotis/go-discover
+LDFLAGS      := -w -s
+GOBIN        := $(CURDIR)/bin
+PATH         := $(GOBIN):$(PATH)
+CRAWLER_NAME := crawler
+API_NAME     := api
+VERSION      := unknown
 
 # Tools (will be installed in GOBIN)
 TOOLS += github.com/mattn/goveralls
@@ -23,7 +24,7 @@ GIT_SHA ?= $(shell git rev-parse --short HEAD)
 
 # Make All targets
 .PHONY: all
-all: deps test build
+all: deps test build-api build-crawler
 
 # Download dependencies
 .PHONY: deps
@@ -59,20 +60,35 @@ lint: tools
 	@golangci-lint -v run
 
 # Builds binaries
-.PHONY: build
-build: deps
-build: LDFLAGS += -X $(MODULE)/internal/version.Timestamp=$(shell date +%s)
-build: LDFLAGS += -X $(MODULE)/internal/version.Version=${VERSION}
-build: LDFLAGS += -X $(MODULE)/internal/version.GitSHA=${GIT_SHA}
-build: LDFLAGS += -X $(MODULE)/internal/version.ServiceName=${NAME}
-build:
-	$(info building binary to bin/$(NAME))
-	@CGO_ENABLED=0 go build -o bin/$(NAME) -installsuffix cgo -ldflags '$(LDFLAGS)' ./cmd/$(NAME)
+.PHONY: build-crawler
+build-crawler: deps
+build-crawler: LDFLAGS += -X $(MODULE)/internal/version.Timestamp=$(shell date +%s)
+build-crawler: LDFLAGS += -X $(MODULE)/internal/version.Version=${VERSION}
+build-crawler: LDFLAGS += -X $(MODULE)/internal/version.GitSHA=${GIT_SHA}
+build-crawler: LDFLAGS += -X $(MODULE)/internal/version.ServiceName=${CRAWLER_NAME}
+build-crawler:
+	$(info building binary to bin/$(CRAWLER_NAME))
+	@CGO_ENABLED=0 go build -o bin/$(CRAWLER_NAME) -installsuffix cgo -ldflags '$(LDFLAGS)' ./cmd/$(CRAWLER_NAME)
+
+# Builds binaries
+.PHONY: build-api
+build-api: deps
+build-api: LDFLAGS += -X $(MODULE)/internal/version.Timestamp=$(shell date +%s)
+build-api: LDFLAGS += -X $(MODULE)/internal/version.Version=${VERSION}
+build-api: LDFLAGS += -X $(MODULE)/internal/version.GitSHA=${GIT_SHA}
+build-api: LDFLAGS += -X $(MODULE)/internal/version.ServiceName=${API_NAME}
+build-api:
+	$(info building binary to bin/$(API_NAME))
+	@CGO_ENABLED=0 go build -o bin/$(API_NAME) -installsuffix cgo -ldflags '$(LDFLAGS)' ./cmd/$(API_NAME)
 
 # Builds and runs the binary with debug logging
-.PHONY: run
-run: build
-	@LOG_LEVEL=debug ./bin/$(NAME)
+.PHONY: run-crawler
+run-crawler: build-api
+	@LOG_LEVEL=debug ./bin/$(CRAWLER_NAME)
+
+.PHONY: run-api
+run-api: build-api
+	@LOG_LEVEL=debug ./bin/$(API_NAME)
 
 # Build and runs docker-compose
 .PHONY: docker-compose
@@ -82,7 +98,7 @@ docker-compose: vendor
 	docker-compose rm -f
 	docker-compose down
 	docker-compose build
-	docker-compose run --service-ports --rm discover
+	docker-compose run --service-ports --rm api --rm crawler
 
 # Run test suite
 .PHONY: test
@@ -91,6 +107,10 @@ test: tools
 	go test $(V) -count=1 --race -covermode=atomic ./...
 
 # Clean temp things
-.PHONY: clean
-clean:
-	@rm bin/$(NAME)
+.PHONY: clean-api
+clean-api:
+	@rm bin/$(API_NAME)
+
+.PHONY: clean-crawler
+clean-crawler:
+	@rm bin/$(CRAWLER_NAME)

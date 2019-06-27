@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"time"
@@ -26,7 +26,7 @@ type Config struct {
 }
 
 // loadConfig parses environment variables returning configuration
-func loadConfig() (*Config, error) {
+func LoadConfig() (*Config, error) {
 	cfg := &Config{}
 	if err := env.Parse(cfg); err != nil {
 		return nil, err

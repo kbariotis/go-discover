@@ -63,5 +63,5 @@ func main() {
 	)
 
 	// start api on the background
-	go api.Serve(cfg.APIBindAddress)
+	api.Serve(cfg.APIBindAddress)
 }

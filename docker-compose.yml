@@ -24,7 +24,7 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile.local
-    command: go run -mod=vendor ./cmd/crawler
+    command: go run -mod=vendor ./cmd/api
     env_file:
       - .env
     ports:

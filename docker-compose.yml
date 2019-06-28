@@ -1,17 +1,16 @@
 version: "2.1"
 services:
-  discover:
-    container_name: discover
+  crawler:
+    container_name: crawler
     build:
       context: ./
       dockerfile: Dockerfile.local
+    command: go run -mod=vendor ./cmd/crawler
     env_file:
       - .env
     links:
       - neo
       - redis
-    ports:
-      - 8080:8080
     volumes:
       - ./local:/src/local
     depends_on:
@@ -19,6 +18,19 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  api:
+    container_name: api
+    build:
+      context: ./
+      dockerfile: Dockerfile.local
+    command: go run -mod=vendor ./cmd/api
+    env_file:
+      - .env
+    ports:
+      - 8080:8080
+    volumes:
+      - ./local:/src/local
 
   redis:
     container_name: discover_redis

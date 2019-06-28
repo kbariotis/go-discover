@@ -13,8 +13,8 @@ import (
 
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // required for sqlite
 
-	"github.com/kbariotis/go-discover/internal/api"
 	"github.com/kbariotis/go-discover/internal/cache"
+	"github.com/kbariotis/go-discover/internal/config"
 	"github.com/kbariotis/go-discover/internal/crawler"
 	"github.com/kbariotis/go-discover/internal/model"
 	"github.com/kbariotis/go-discover/internal/provider"
@@ -34,7 +34,7 @@ func main() {
 	ctx := context.Background()
 
 	logger.Debug("loading configuration")
-	cfg, err := loadConfig()
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		logger.WithError(err).Fatal("could not load configuration")
 	}
@@ -157,17 +157,6 @@ func main() {
 	if err != nil {
 		logger.WithError(err).Fatal("could not construct github provider")
 	}
-
-	// constrcut api
-	api := api.NewAPI(
-		suggestionStore,
-		cfg.GithubClientID,
-		cfg.GithubClientSecret,
-		cfg.GithubCallbackURL,
-	)
-
-	// start api on the background
-	go api.Serve(cfg.APIBindAddress)
 
 	// create crawler
 	crw, err := crawler.New(

@@ -26,7 +26,7 @@ import (
 // main initliases and starts the service
 func main() {
 	logger := logrus.WithFields(logrus.Fields{
-		"logger":  "cmd/discover",
+		"logger":  "cmd/crawler",
 		"version": version.Version,
 		"gitSHA":  version.GitSHA,
 	})
@@ -65,15 +65,6 @@ func main() {
 	)
 	if err != nil {
 		logger.WithError(err).Fatal("could not create dqueue for userOnboarding")
-	}
-
-	suggestionExtractionQueue, err := queue.NewDQueue(
-		"suggestionExtraction.queue",
-		cfg.QueueStoreDir,
-		&model.SuggestionExtractionTask{},
-	)
-	if err != nil {
-		logger.WithError(err).Fatal("could not create dqueue for suggestionExtraction")
 	}
 
 	userFolloweeQueue, err := queue.NewDQueue(
@@ -174,7 +165,6 @@ func main() {
 		suggestionStore,
 		redis,
 		prv,
-		suggestionExtractionQueue,
 		userOnboardingQueue,
 		userFolloweeQueue,
 		userQueue,

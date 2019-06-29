@@ -15,7 +15,7 @@ import (
 // main initliases and starts the service
 func main() {
 	logger := logrus.WithFields(logrus.Fields{
-		"logger":  "cmd/discover",
+		"logger":  "cmd/api",
 		"version": version.Version,
 		"gitSHA":  version.GitSHA,
 	})

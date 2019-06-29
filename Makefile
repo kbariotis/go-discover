@@ -1,10 +1,11 @@
-MODULE       := github.com/kbariotis/go-discover
-LDFLAGS      := -w -s
-GOBIN        := $(CURDIR)/bin
-PATH         := $(GOBIN):$(PATH)
-CRAWLER_NAME := crawler
-API_NAME     := api
-VERSION      := unknown
+MODULE					:= github.com/kbariotis/go-discover
+LDFLAGS					:= -w -s
+GOBIN						:= $(CURDIR)/bin
+PATH						:= $(GOBIN):$(PATH)
+CRAWLER_NAME		:= crawler
+API_NAME				:= api
+EXTRACTION_NAME	:= extraction
+VERSION					:= unknown
 
 # Tools (will be installed in GOBIN)
 TOOLS += github.com/mattn/goveralls
@@ -70,6 +71,16 @@ build-crawler:
 	$(info building binary to bin/$(CRAWLER_NAME))
 	@CGO_ENABLED=0 go build -o bin/$(CRAWLER_NAME) -installsuffix cgo -ldflags '$(LDFLAGS)' ./cmd/$(CRAWLER_NAME)
 
+.PHONY: build-extraction
+build-extraction: deps
+build-extraction: LDFLAGS += -X $(MODULE)/internal/version.Timestamp=$(shell date +%s)
+build-extraction: LDFLAGS += -X $(MODULE)/internal/version.Version=${VERSION}
+build-extraction: LDFLAGS += -X $(MODULE)/internal/version.GitSHA=${GIT_SHA}
+build-extraction: LDFLAGS += -X $(MODULE)/internal/version.ServiceName=${EXTRACTION_NAME}
+build-extraction:
+	$(info building binary to bin/$(EXTRACTION_NAME))
+	@CGO_ENABLED=0 go build -o bin/$(EXTRACTION_NAME) -installsuffix cgo -ldflags '$(LDFLAGS)' ./cmd/$(EXTRACTION_NAME)
+
 # Builds binaries
 .PHONY: build-api
 build-api: deps
@@ -83,8 +94,12 @@ build-api:
 
 # Builds and runs the binary with debug logging
 .PHONY: run-crawler
-run-crawler: build-api
+run-crawler: build-crawler
 	@LOG_LEVEL=debug ./bin/$(CRAWLER_NAME)
+
+.PHONY: run-extraction
+run-extraction: build-extraction
+	@LOG_LEVEL=debug ./bin/$(EXTRACTION_NAME)
 
 .PHONY: run-api
 run-api: build-api
@@ -114,3 +129,7 @@ clean-api:
 .PHONY: clean-crawler
 clean-crawler:
 	@rm bin/$(CRAWLER_NAME)
+
+.PHONY: clean-extraction
+clean-extraction:
+	@rm bin/$(EXTRACTION_NAME)

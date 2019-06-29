@@ -24,7 +24,6 @@ const (
 // API -
 type API struct {
 	suggestionStore store.SuggestionStore
-	graphStore      store.GraphStore
 	githubClient    *github.Client
 	oauthConfig     *oauth2.Config
 }
@@ -32,7 +31,6 @@ type API struct {
 // NewAPI -
 func NewAPI(
 	suggestionStore store.SuggestionStore,
-	graphStore store.GraphStore,
 	githubClientID string,
 	githubClientSecret string,
 	githubCallbackURL string,
@@ -49,7 +47,6 @@ func NewAPI(
 
 	api := &API{
 		suggestionStore: suggestionStore,
-		graphStore:      graphStore,
 		oauthConfig:     oauthCfg,
 	}
 
@@ -147,7 +144,7 @@ func (api *API) HandleGetUserSuggestions(c *gin.Context) {
 		return
 	}
 
-	suggestion, err := api.graphStore.GetUserSuggestion(user)
+	suggestion, err := api.suggestionStore.GetLatestSuggestionForUser(user.Name)
 	if err != nil {
 		logger.WithError(err).Warn("Could not get suggestions")
 		c.JSON(200, gin.H{

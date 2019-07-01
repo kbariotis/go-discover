@@ -100,7 +100,7 @@ func main() {
 
 	// create extraction
 	extr, err := extraction.New(
-		time.Minute*5,
+		time.Hour*24*7,
 		graphStore,
 		suggestionStore,
 		suggestionExtractionQueue,

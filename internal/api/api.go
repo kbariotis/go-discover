@@ -139,7 +139,8 @@ func (api *API) HandleGetUserSuggestions(c *gin.Context) {
 	if err != nil {
 		logger.WithError(err).Warn("Could not get user")
 		c.JSON(200, gin.H{
-			"message": "pong",
+			"success": false,
+			"message": err,
 		})
 		return
 	}
@@ -148,12 +149,14 @@ func (api *API) HandleGetUserSuggestions(c *gin.Context) {
 	if err != nil {
 		logger.WithError(err).Warn("Could not get suggestions")
 		c.JSON(200, gin.H{
-			"message": "pong",
+			"success": false,
+			"error":   err,
 		})
 		return
 	}
 
 	c.JSON(200, gin.H{
+		"success":  true,
 		"response": suggestion.Items,
 	})
 }

@@ -50,11 +50,11 @@ const (
 	`
 	// TODO add dates between starredAt
 	neoGetTopStarredRepositories = `
-    MATCH (user:User)-[:IsFollowing]->(:User)-[starred:HasStarred]->(repository:Repository)
-    WHERE user.name = "{{ .Name }}" AND starred.starredAt > {{ .Timestamp }}
-    RETURN count(starred) as noOfFollowees, repository.name
-    ORDER BY noOfFollowees DESC
-    LIMIT 5
+		MATCH (user:User)-[:IsFollowing]->(:User)-[starred:HasStarred]->(repository:Repository)
+		WHERE user.name = "{{ .Name }}" AND starred.starredAt > {{ .Timestamp }}
+		RETURN count(starred) as noOfFollowees, repository.name
+		ORDER BY noOfFollowees DESC
+		LIMIT 5
 	`
 )
 

@@ -21,6 +21,9 @@ type Config struct {
 	GithubClientID     string `env:"GITHUB_CLIENT_ID"`
 	GithubCallbackURL  string `env:"GITHUB_CALLBACK_URL" envDefault:"http://localhost:8080/github/callback"`
 
+	MailgunDomain string `env:"MAILGUN_DOMAIN"`
+	MailgunAPIKey string `env:"MAILGUN_APIKEY"`
+
 	LockUserDuration       time.Duration `env:"LOCK_USER_DURATION" envDefault:"12h"`
 	LockRepositoryDuration time.Duration `env:"LOCK_REPOSITORY_DURATION" envDefault:"24h"`
 }

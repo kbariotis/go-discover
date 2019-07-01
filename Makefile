@@ -113,7 +113,7 @@ docker-compose: vendor
 	docker-compose rm -f
 	docker-compose down
 	docker-compose build
-	docker-compose run --service-ports --rm api --rm crawler
+	docker-compose run --service-ports --rm api extraction crawler
 
 # Run test suite
 .PHONY: test

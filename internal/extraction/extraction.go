@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
+	"github.com/kbariotis/go-discover/internal/mailer"
 	"github.com/kbariotis/go-discover/internal/model"
 	"github.com/kbariotis/go-discover/internal/queue"
 	"github.com/kbariotis/go-discover/internal/store"
@@ -20,6 +21,8 @@ type Extraction struct {
 	suggestionStore store.SuggestionStore // Rename because it includes all SQL store
 
 	suggestionExtractionQueue queue.Queue
+
+	mailer mailer.Mailer
 }
 
 // New constructs a Github extraction
@@ -28,6 +31,7 @@ func New(
 	graphStore store.GraphStore,
 	suggestionStore store.SuggestionStore,
 	suggestionExtractionQueue queue.Queue,
+	mailer mailer.Mailer,
 ) (*Extraction, error) {
 
 	extraction := &Extraction{
@@ -35,6 +39,7 @@ func New(
 		suggestionStore:           suggestionStore,
 		extractionInterval:        extractionInterval,
 		suggestionExtractionQueue: suggestionExtractionQueue,
+		mailer:                    mailer,
 	}
 
 	return extraction, nil
@@ -61,6 +66,15 @@ func (e *Extraction) handleSuggestionExtractionTask(task *model.SuggestionExtrac
 
 	if err := e.suggestionStore.PutSuggestion(suggestion); err != nil {
 		return errors.Wrap(err, "could not put suggestion")
+	}
+
+	html, err := suggestion.ToHTML()
+	if err := e.suggestionStore.PutSuggestion(suggestion); err != nil {
+		return errors.Wrap(err, "could not generate html")
+	}
+
+	if err := e.mailer.SendSuggestion(user.Email, html); err != nil {
+		return errors.Wrap(err, "could not send suggestion email")
 	}
 
 	return nil

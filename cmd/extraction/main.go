@@ -6,12 +6,14 @@ import (
 
 	"github.com/Financial-Times/neoism"
 	"github.com/jinzhu/gorm"
+	"github.com/mailgun/mailgun-go/v3"
 	"github.com/sirupsen/logrus"
 
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // required for sqlite
 
 	"github.com/kbariotis/go-discover/internal/config"
 	"github.com/kbariotis/go-discover/internal/extraction"
+	"github.com/kbariotis/go-discover/internal/mailer"
 	"github.com/kbariotis/go-discover/internal/model"
 	"github.com/kbariotis/go-discover/internal/queue"
 	"github.com/kbariotis/go-discover/internal/store"
@@ -89,12 +91,20 @@ func main() {
 		logger.WithError(err).Fatal("could not setup suggestion db")
 	}
 
+	// setup mailgun
+	mg := mailgun.NewMailgun(cfg.MailgunDomain, cfg.MailgunAPIKey)
+	mailer, err := mailer.NewMailgun(mg)
+	if err != nil {
+		logger.WithError(err).Fatal("could not create mailer")
+	}
+
 	// create extraction
 	extr, err := extraction.New(
 		time.Minute*5,
 		graphStore,
 		suggestionStore,
 		suggestionExtractionQueue,
+		mailer,
 	)
 	if err != nil {
 		logger.WithError(err).Fatal("could not construct extraction")

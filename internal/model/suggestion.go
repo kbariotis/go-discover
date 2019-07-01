@@ -1,7 +1,31 @@
 package model
 
 import (
+	"bytes"
+	"text/template"
 	"time"
+
+	"github.com/pkg/errors"
+)
+
+const (
+	newSuggestionEmailTemplate = `
+		<html>
+			<head></head>
+			<body>
+				<br/>
+				This is you weekly report from GitHub.
+				<br/>
+				<ul>
+				{{range .Suggestion.Items}}
+					<li>
+						Repository: {{.Value}} because {{.Reason}}
+					</li>
+				{{end}}
+				</ul>
+			</body>
+		</html>
+	`
 )
 
 // SuggestionType defines the types for suggestions
@@ -31,4 +55,24 @@ type Suggestion struct {
 	UserID   string `gorm:"index:user_id"`
 	DateTime time.Time
 	Items    []SuggestionItem `gorm:"foreignkey:SuggestionID"`
+}
+
+func (s *Suggestion) ToHTML() (string, error) {
+	// create template for query
+	newSuggestionEmail, err := template.
+		New("newSuggestionEmail").
+		Parse(newSuggestionEmailTemplate)
+	if err != nil {
+		return "", errors.Wrap(err, "could not parse template")
+	}
+
+	// render query
+	query := &bytes.Buffer{}
+	if err := newSuggestionEmail.Execute(query, map[string]interface{}{
+		"Suggestion": s,
+	}); err != nil {
+		return "", errors.Wrap(err, "could not merge user")
+	}
+
+	return query.String(), nil
 }

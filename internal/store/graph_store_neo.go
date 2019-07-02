@@ -3,7 +3,7 @@ package store
 import (
 	"bytes"
 	"encoding/json"
-	"strconv"
+	"fmt"
 	"strings"
 	"text/template"
 	"time"
@@ -279,7 +279,7 @@ func (neo *Neo) GetUserSuggestion(user *model.User) (*model.Suggestion, error) {
 		suggestions[k] = model.SuggestionItem{
 			Type:   "repository",
 			Value:  res[k].Repository,
-			Reason: strconv.Itoa(res[k].NoOfFollowees) + " followers starred it",
+			Reason: fmt.Sprintf("%d followers starred it", res[k].NoOfFollowees),
 		}
 	}
 

@@ -1,11 +1,11 @@
-MODULE					:= github.com/kbariotis/go-discover
-LDFLAGS					:= -w -s
-GOBIN						:= $(CURDIR)/bin
-PATH						:= $(GOBIN):$(PATH)
+MODULE			:= github.com/kbariotis/go-discover
+LDFLAGS		:= -w -s
+GOBIN			:= $(CURDIR)/bin
+PATH			:= $(GOBIN):$(PATH)
 CRAWLER_NAME		:= crawler
-API_NAME				:= api
+API_NAME		:= api
 EXTRACTION_NAME	:= extraction
-VERSION					:= unknown
+VERSION		:= unknown
 
 # Tools (will be installed in GOBIN)
 TOOLS += github.com/mattn/goveralls

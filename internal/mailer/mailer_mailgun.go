@@ -23,10 +23,10 @@ func NewMailgun(client *mailgun.MailgunImpl) (Mailer, error) {
 	return ml, nil
 }
 
-// SendSuggestion to send a given to the user
-func (m *Mailgun) SendSuggestion(email string, html string) error {
+// Mail to send a given to the user
+func (m *Mailgun) Mail(email string, html string) error {
 	logger := logrus.WithFields(logrus.Fields{
-		"logger":     "mailers/Mailgun.SendSuggestion",
+		"logger":     "mailers/Mailgun.Mail",
 		"user.email": email,
 	})
 

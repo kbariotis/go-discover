@@ -73,7 +73,7 @@ func (e *Extraction) handleSuggestionExtractionTask(task *model.SuggestionExtrac
 		return errors.Wrap(err, "could not generate html")
 	}
 
-	if err := e.mailer.SendSuggestion(user.Email, html); err != nil {
+	if err := e.mailer.Mail(user.Email, html); err != nil {
 		return errors.Wrap(err, "could not send suggestion email")
 	}
 

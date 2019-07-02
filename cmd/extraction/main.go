@@ -93,7 +93,7 @@ func main() {
 
 	// setup mailgun
 	mg := mailgun.NewMailgun(cfg.MailgunDomain, cfg.MailgunAPIKey)
-	mailer, err := mailer.NewMailgun(mg)
+	mailer, err := mailer.NewMailgun(mg, cfg.MailSenderAddress)
 	if err != nil {
 		logger.WithError(err).Fatal("could not create mailer")
 	}

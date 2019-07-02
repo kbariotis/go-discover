@@ -12,12 +12,15 @@ import (
 // Mailgun mailer
 type Mailgun struct {
 	client *mailgun.MailgunImpl
+
+	sender string
 }
 
 // NewMailgun constructs a new Mailgun provider
-func NewMailgun(client *mailgun.MailgunImpl) (Mailer, error) {
+func NewMailgun(client *mailgun.MailgunImpl, sender string) (Mailer, error) {
 	ml := &Mailgun{
 		client: client,
+		sender: sender,
 	}
 
 	return ml, nil
@@ -33,7 +36,7 @@ func (m *Mailgun) Mail(email string, html string) error {
 	logger.Info("sending suggestion to the user")
 
 	msg := m.client.NewMessage(
-		"Kostas Bariotis <newsletter@sandboxbd7bb1a1171e4f41abb06173d239f07d.mailgun.org>",
+		m.sender,
 		"Your weekly GitHub newsletter",
 		"",
 		email,

@@ -24,6 +24,8 @@ type Config struct {
 	MailgunDomain string `env:"MAILGUN_DOMAIN"`
 	MailgunAPIKey string `env:"MAILGUN_APIKEY"`
 
+	MailSenderAddress string `env:"MAIL_SENDER_ADDRESS"`
+
 	LockUserDuration       time.Duration `env:"LOCK_USER_DURATION" envDefault:"12h"`
 	LockRepositoryDuration time.Duration `env:"LOCK_REPOSITORY_DURATION" envDefault:"24h"`
 }

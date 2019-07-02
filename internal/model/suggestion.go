@@ -66,13 +66,13 @@ func (s *Suggestion) ToHTML() (string, error) {
 		return "", errors.Wrap(err, "could not parse template")
 	}
 
-	// render query
-	query := &bytes.Buffer{}
-	if err := newSuggestionEmail.Execute(query, map[string]interface{}{
+	// render mailTemplate
+	mailTemplate := &bytes.Buffer{}
+	if err := newSuggestionEmail.Execute(mailTemplate, map[string]interface{}{
 		"Suggestion": s,
 	}); err != nil {
-		return "", errors.Wrap(err, "could not merge user")
+		return "", errors.Wrap(err, "could not execute template")
 	}
 
-	return query.String(), nil
+	return mailTemplate.String(), nil
 }

@@ -129,6 +129,38 @@ func (api *API) HandleGetGithubCallback(c *gin.Context) {
 	c.HTML(http.StatusOK, "github_callback.html", values)
 }
 
+// HandleGetUserSuggestions -
+func (api *API) HandleGetUserSuggestions(c *gin.Context) {
+	logger := logrus.WithFields(logrus.Fields{
+		"logger": "api/api.HandleGetUserSuggestions",
+	})
+
+	user, err := api.suggestionStore.GetUser("kbariotis")
+	if err != nil {
+		logger.WithError(err).Warn("Could not get user")
+		c.JSON(200, gin.H{
+			"success": false,
+			"message": err,
+		})
+		return
+	}
+
+	suggestion, err := api.suggestionStore.GetLatestSuggestionForUser(user.Name)
+	if err != nil {
+		logger.WithError(err).Warn("Could not get suggestions")
+		c.JSON(200, gin.H{
+			"success": false,
+			"error":   err,
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"success":  true,
+		"response": suggestion.Items,
+	})
+}
+
 // registerUser -
 func (api *API) registerUser(githubToken string) (*model.User, error) {
 	logger := logrus.WithFields(logrus.Fields{
@@ -196,6 +228,7 @@ func (api *API) Serve(address string) error {
 
 	// frontend endpoits
 	r.GET("/", api.HandleGetRoot)
+	r.GET("/suggestions/latest", api.HandleGetUserSuggestions)
 	r.GET("/github/callback", api.HandleGetGithubCallback)
 
 	return r.Run(address)

@@ -10,4 +10,5 @@ import (
 type GraphStore interface {
 	PutRepository(*model.Repository) error
 	PutUser(*model.User) error
+	GetUserSuggestion(user *model.User) (*model.Suggestion, error)
 }

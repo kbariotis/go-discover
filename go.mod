@@ -15,6 +15,7 @@ require (
 	github.com/jinzhu/gorm v1.9.8
 	github.com/jmcvetta/randutil v0.0.0-20150817122601-2bb1b664bcff // indirect
 	github.com/joncrlsn/dque v0.0.0-20190104233530-ceded79bccfe
+	github.com/mailgun/mailgun-go/v3 v3.6.0
 	github.com/mattn/go-colorable v0.1.1 // indirect
 	github.com/mattn/goveralls v0.0.2
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.0.2

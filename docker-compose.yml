@@ -19,6 +19,24 @@ services:
       redis:
         condition: service_healthy
 
+  extraction:
+    container_name: extraction
+    build:
+      context: ./
+      dockerfile: Dockerfile.local
+    command: go run -mod=vendor ./cmd/extraction
+    env_file:
+      - .env
+    links:
+      - neo
+    volumes:
+      - ./local:/src/local
+    depends_on:
+      neo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   api:
     container_name: api
     build:

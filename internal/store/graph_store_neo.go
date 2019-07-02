@@ -3,6 +3,7 @@ package store
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"text/template"
 	"time"
@@ -46,6 +47,14 @@ const (
 			MERGE (r:Repository {name: star.repository})
 			MERGE (u)-[:HasStarred {starredAt: star.starredAt}]->(r)
 		)
+	`
+	// TODO add dates between starredAt
+	neoGetTopStarredRepositories = `
+		MATCH (user:User)-[:IsFollowing]->(:User)-[starred:HasStarred]->(repository:Repository)
+		WHERE user.name = "{{ .Name }}" AND starred.starredAt > {{ .Timestamp }}
+		RETURN count(starred) as noOfFollowees, repository.name
+		ORDER BY noOfFollowees DESC
+		LIMIT 5
 	`
 )
 
@@ -116,7 +125,7 @@ func (neo *Neo) PutRepository(repository *model.Repository) error {
 		"repository.languages.count": len(repository.Languages),
 	})
 
-	logger.Info("following user")
+	logger.Info("saving repository")
 
 	// keep start time for query metrics
 	startTime := time.Now()
@@ -167,7 +176,7 @@ func (neo *Neo) PutUser(user *model.User) error {
 		"user.stars.count":     len(user.Stars),
 	})
 
-	logger.Info("following user")
+	logger.Info("saving user")
 
 	// keep start time for query metrics
 	startTime := time.Now()
@@ -207,4 +216,76 @@ func (neo *Neo) PutUser(user *model.User) error {
 		Debug("query execution finished")
 
 	return nil
+}
+
+// GetUserSuggestion get user suggestions
+func (neo *Neo) GetUserSuggestion(user *model.User) (*model.Suggestion, error) {
+	logger := logrus.WithFields(logrus.Fields{
+		"logger":    "store/Neo.GetUserSuggestion",
+		"user.name": user.Name,
+	})
+
+	logger.Info("get user suggestion")
+
+	// keep start time for query metrics
+	startTime := time.Now()
+
+	// create template for query
+	neoGetUserSuggestionQuery, err := template.
+		New("neoGetUserSuggestionQuery").
+		Parse(neoGetTopStarredRepositories)
+	if err != nil {
+		return &model.Suggestion{}, errors.Wrap(err, "could not parse template")
+	}
+
+	// render query
+	query := &bytes.Buffer{}
+	type InputQuery struct {
+		Name      string
+		Timestamp int64
+	}
+	if err := neoGetUserSuggestionQuery.Execute(query, InputQuery{
+		Name:      user.Name,
+		Timestamp: startTime.Add(time.Hour * 24 * -7).Unix(),
+	}); err != nil {
+		return &model.Suggestion{}, errors.Wrap(err, "could not execute query")
+	}
+
+	logger.WithField("query", query).Debug("running query")
+
+	res := []struct {
+		NoOfFollowees int    `json:"noOfFollowees"`
+		Repository    string `json:"repository.name"`
+	}{}
+
+	// run query
+	cypherQuery := &neoism.CypherQuery{
+		Statement:  query.String(),
+		Parameters: map[string]interface{}{},
+		Result:     &res,
+	}
+	if err := neo.db.Cypher(cypherQuery); err != nil {
+		return &model.Suggestion{}, errors.Wrap(err, "could not run cypher query")
+	}
+
+	// log query time
+	logger.
+		WithField("execution_time", time.Now().Sub(startTime)).
+		Debug("query execution finished")
+
+	suggestions := make([]model.SuggestionItem, len(res))
+
+	for k, _ := range res {
+		suggestions[k] = model.SuggestionItem{
+			Type:   "repository",
+			Value:  res[k].Repository,
+			Reason: fmt.Sprintf("%d followers starred it", res[k].NoOfFollowees),
+		}
+	}
+
+	return &model.Suggestion{
+		UserID:   user.Name,
+		DateTime: time.Now(),
+		Items:    suggestions,
+	}, nil
 }

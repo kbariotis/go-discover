@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/go-github/v25/github"
 	"github.com/kbariotis/go-discover/internal/model"
@@ -37,7 +38,8 @@ func (g *Github) GetUserStars(ctx context.Context, name string) ([]model.Starred
 	stars := []model.StarredRepository{}
 
 	currentPage := 1
-	for currentPage != 0 {
+	stop := false
+	for currentPage != 0 && !stop {
 		opts := &github.ActivityListStarredOptions{
 			ListOptions: github.ListOptions{
 				Page:    currentPage,
@@ -60,7 +62,17 @@ func (g *Github) GetUserStars(ctx context.Context, name string) ([]model.Starred
 			Debug("got stars")
 
 		for _, repo := range moreRepos {
-			stars = append(stars, model.StarredRepository{repo.Repository.GetFullName(), repo.StarredAt.Unix()})
+			if repo.StarredAt.Before(time.Now().Add(-time.Hour * 24 * 7)) {
+				logger.WithFields(logrus.Fields{
+					"last_starred_at": repo.StarredAt.Unix(),
+				}).Debug("got enough stars")
+				stop = true
+				break
+			}
+			stars = append(stars, model.StarredRepository{
+				Repository: repo.Repository.GetFullName(),
+				StarredAt:  repo.StarredAt.Unix(),
+			})
 		}
 
 		currentPage = res.NextPage
@@ -139,7 +151,8 @@ func (g *Github) GetRepository(ctx context.Context, name string) (*model.Reposit
 	stars := []model.UserStar{}
 
 	currentPage := 1
-	for currentPage != 0 {
+	stop := false
+	for currentPage != 0 && !stop {
 		opts := &github.ListOptions{
 			Page:    currentPage,
 			PerPage: 100,
@@ -160,6 +173,13 @@ func (g *Github) GetRepository(ctx context.Context, name string) (*model.Reposit
 			Debug("got repo's stars")
 
 		for _, user := range mporeStars {
+			if user.StarredAt.Before(time.Now().Add(-time.Hour * 24 * 7)) {
+				logger.WithFields(logrus.Fields{
+					"last_starred_at": user.StarredAt.Unix(),
+				}).Debug("got enough stars")
+				stop = true
+				break
+			}
 			stars = append(
 				stars,
 				model.UserStar{

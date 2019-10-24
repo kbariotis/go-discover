@@ -90,7 +90,7 @@ __Available make targets:__
 
 Want to contribute to this project?
 
-We are absolutely welcoming contribution to this project. Take a look at our open [issues](https://github.com/kbariotis/go-discover) and open a PR if you see one you can help.
+We are absolutely welcoming contribution to this project. Take a look at our open [issues](https://github.com/kbariotis/go-discover/issues) and open a PR if you see one you can help.
 
 Feel free to get in touch with us to discuss more about this project and how you can get involved. We love hearing from people!
 

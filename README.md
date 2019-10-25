@@ -1,8 +1,8 @@
 # Discover
 
-> A weekly GitHub newsletter tailored on you. Discover what your peers are doing on GitHub.
+> A weekly GitHub newsletter tailored for you. Discover what your peers are doing on GitHub.
 
-Discover is monitoring the people you follow on GitHub and sends you a weekly newsletter with that activity. Discover projects that your friends are working on, new repositories that they recently discovered, issues and releases that you probably missed.
+Discover monitors the people you follow on GitHub and sends you a weekly newsletter with their activity. Discover projects your friends are working on, new repositories they recently discovered, and issues or releases you might have missed.
 
 It consists of three parts.
 
@@ -90,7 +90,7 @@ __Available make targets:__
 
 Want to contribute to this project?
 
-We are absolutely welcoming contribution to this project. Take a look at our open [issues](https://github.com/kbariotis/go-discover) and open a PR if you see one you can help.
+We absolutely welcome contributions to this project. Take a look at our open [issues](https://github.com/kbariotis/go-discover/issues) and submit a PR if you see one you can help with.
 
 Feel free to get in touch with us to discuss more about this project and how you can get involved. We love hearing from people!
 

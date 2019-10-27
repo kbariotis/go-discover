@@ -40,18 +40,22 @@ spec:
               name: neo-secret
               key: NEO4J_AUTH
         image: neo4j:3.0
-        livenessProbe:
-          exec:
-            command:
-            - curl -w %{http_code} -s --output /dev/null localhost:7474
-          failureThreshold: 5
-          periodSeconds: 5
-          timeoutSeconds: 5
         name: discover-neo
+        command:
+          - "/bin/bash"
+          - "-ecx"
+          - |
+            export NEO4J_dbms_connectors_default__advertised__address=$(hostname -f)
+            export NEO4J_causal__clustering_discovery__advertised__address=$(hostname -f):5000
+            export NEO4J_causal__clustering_transaction__advertised__address=$(hostname -f):6000
+            export NEO4J_causal__clustering_raft__advertised__address=$(hostname -f):7000
+            exec /docker-entrypoint.sh "neo4j"
         ports:
         - containerPort: 7474
+          name: browser
         - containerPort: 6477
         - containerPort: 7687
+          name: bolt
         resources: {}
         volumeMounts:
         - mountPath: /plugins

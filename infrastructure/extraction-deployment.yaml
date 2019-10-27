@@ -35,7 +35,7 @@ spec:
             secretKeyRef:
               name: extraction-secret
               key: MAILGUN_APIKEY
-        image: kostarelo/discover-exctraction
+        image: kostarelo/discover-extraction
         name: extraction
         resources: {}
         volumeMounts:

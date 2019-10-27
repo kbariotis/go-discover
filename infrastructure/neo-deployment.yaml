@@ -31,6 +31,11 @@ spec:
           value: 0.0.0.0:7474
         - name: NEO4J_dbms_connector_https_listen__address
           value: 0.0.0.0:6477
+        - name: NEO4J_AUTH
+          valueFrom:
+            secretKeyRef:
+              name: neo-secret
+              key: NEO4J_AUTH
         image: neo4j:3.0
         livenessProbe:
           exec:

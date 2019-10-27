@@ -25,6 +25,16 @@ spec:
       - env:
         - name: GITHUB_CLIENT_ID
           value: Iv1.4d121e96ec2e71a8
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: api-secret
+              key: GITHUB_TOKEN
+        - name: GITHUB_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: api-secret
+              key: GITHUB_CLIENT_SECRET
         image: kostarelo/discover-api
         name: api
         ports:

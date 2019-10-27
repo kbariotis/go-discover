@@ -27,9 +27,21 @@ spec:
           value: bariotis.com
         - name: MAIL_SENDER_ADDRESS
           value: kostas@bariotis.com
+        - name: MAILGUN_APIKEY
+          valueFrom:
+            secretKeyRef:
+              name: extraction-secret
+              key: MAILGUN_APIKEY
         image: kostarelo/discover-exctraction
         name: extraction
         resources: {}
+        initContainers:
+        - name: init-redis
+          image: busybox
+          command: ['sh', '-c', 'until nc -z redis:6379; do echo waiting for redis; sleep 2; done;']  
+        - name: init-neo
+          image: busybox
+          command: ['sh', '-c', 'until nc -z neo:7474; do echo waiting for neo; sleep 2; done;']  
         volumeMounts:
         - mountPath: /src/local
           name: extraction-claim0

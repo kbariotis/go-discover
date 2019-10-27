@@ -27,9 +27,26 @@ spec:
           value: ./
         - name: REDIS_HOST
           value: redis:6379
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: crawler-secret
+              key: GITHUB_TOKEN
+        - name: NEO4J_HOST
+          valueFrom:
+            secretKeyRef:
+              name: crawler-secret
+              key: NEO4J_HOST
         image: kostarelo/discover-crawler
         name: crawler
         resources: {}
+        initContainers:
+        - name: init-redis
+          image: busybox
+          command: ['sh', '-c', 'until nc -z redis:6379; do echo waiting for redis; sleep 2; done;']  
+        - name: init-neo
+          image: busybox
+          command: ['sh', '-c', 'until nc -z neo:7474; do echo waiting for neo; sleep 2; done;']  
         volumeMounts:
         - mountPath: /src/local
           name: crawler-claim0

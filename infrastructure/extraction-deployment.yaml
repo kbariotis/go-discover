@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
@@ -10,6 +10,9 @@ metadata:
   name: extraction
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: extraction
   strategy:
     type: Recreate
   template:
@@ -35,13 +38,6 @@ spec:
         image: kostarelo/discover-exctraction
         name: extraction
         resources: {}
-        initContainers:
-        - name: init-redis
-          image: busybox
-          command: ['sh', '-c', 'until nc -z redis:6379; do echo waiting for redis; sleep 2; done;']  
-        - name: init-neo
-          image: busybox
-          command: ['sh', '-c', 'until nc -z neo:7474; do echo waiting for neo; sleep 2; done;']  
         volumeMounts:
         - mountPath: /src/local
           name: extraction-claim0
@@ -50,4 +46,11 @@ spec:
       - name: extraction-claim0
         persistentVolumeClaim:
           claimName: extraction-claim0
+      initContainers:
+      - name: init-redis
+        image: busybox
+        command: ['sh', '-c', 'until nc -z redis:6379; do echo waiting for redis; sleep 2; done;']  
+      - name: init-neo
+        image: busybox
+        command: ['sh', '-c', 'until nc -z neo:7474; do echo waiting for neo; sleep 2; done;']  
 status: {}

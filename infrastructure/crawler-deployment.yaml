@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
@@ -10,6 +10,9 @@ metadata:
   name: crawler
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: crawler
   strategy:
     type: Recreate
   template:
@@ -39,20 +42,20 @@ spec:
               key: NEO4J_HOST
         image: kostarelo/discover-crawler
         name: crawler
-        resources: {}
-        initContainers:
-        - name: init-redis
-          image: busybox
-          command: ['sh', '-c', 'until nc -z redis:6379; do echo waiting for redis; sleep 2; done;']  
-        - name: init-neo
-          image: busybox
-          command: ['sh', '-c', 'until nc -z neo:7474; do echo waiting for neo; sleep 2; done;']  
         volumeMounts:
         - mountPath: /src/local
           name: crawler-claim0
+        resources: {}
       restartPolicy: Always
       volumes:
       - name: crawler-claim0
         persistentVolumeClaim:
           claimName: crawler-claim0
+      initContainers:
+      - name: init-redis
+        image: busybox
+        command: ['sh', '-c', 'until nc -z redis:6379; do echo waiting for redis; sleep 2; done;']  
+      - name: init-neo
+        image: busybox
+        command: ['sh', '-c', 'until nc -z neo:7474; do echo waiting for neo; sleep 2; done;']  
 status: {}

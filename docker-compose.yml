@@ -27,7 +27,7 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile.local
-    image: kostarelo/discover-exctraction
+    image: kostarelo/discover-extraction
     command: go run -mod=vendor ./cmd/extraction
     env_file:
       - .env

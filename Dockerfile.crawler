@@ -1,5 +1,19 @@
+FROM golang:1.12-alpine as builder
+
+RUN mkdir /build 
+
+ADD . /build/
+
+WORKDIR /build 
+
+RUN apk add build-base git
+
+RUN make build-crawler
+
 FROM scratch
 
-COPY ./bin/crawler /
+COPY --from=builder /build/bin/crawler /
+
+EXPOSE 8080
 
 ENTRYPOINT ["/crawler"]

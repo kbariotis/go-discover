@@ -1,5 +1,19 @@
+FROM golang:1.12-alpine as builder
+
+RUN mkdir /build 
+
+ADD . /build/
+
+WORKDIR /build 
+
+RUN apk add build-base git
+
+RUN make build-extraction
+
 FROM scratch
 
-COPY ./bin/extraction /
+COPY --from=builder /build/bin/extraction /
+
+EXPOSE 8080
 
 ENTRYPOINT ["/extraction"]

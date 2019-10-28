@@ -6,11 +6,13 @@ ADD . /build/
 
 WORKDIR /build 
 
-RUN apk add build-base git
+RUN apk add --no-cache build-base git ca-certificates
 
 RUN make build-api
 
 FROM scratch
+
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 COPY --from=builder /build/bin/api /
 COPY --from=builder /build/templates /templates

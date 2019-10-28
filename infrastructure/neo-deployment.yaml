@@ -1,6 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  namespace: development
   annotations:
     kompose.cmd: kompose convert
     kompose.version: 1.19.0 ()

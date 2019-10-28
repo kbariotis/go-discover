@@ -1,6 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  namespace: development
   annotations:
     kompose.cmd: kompose convert
     kompose.version: 1.19.0 ()
@@ -28,6 +29,13 @@ spec:
       - env:
         - name: MAILGUN_DOMAIN
           value: bariotis.com
+        - name: QUEUE_STORE_DIR
+          value: ./local
+        - name: NEO4J_HOST
+          valueFrom:
+            secretKeyRef:
+              name: crawler-secret
+              key: NEO4J_HOST
         - name: MAIL_SENDER_ADDRESS
           value: kostas@bariotis.com
         - name: MAILGUN_APIKEY
@@ -39,7 +47,7 @@ spec:
         name: extraction
         resources: {}
         volumeMounts:
-        - mountPath: /src/local
+        - mountPath: /local
           name: extraction-claim0
       restartPolicy: Always
       volumes:

@@ -1,6 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  namespace: development
   annotations:
     kompose.cmd: kompose convert
     kompose.version: 1.19.0 ()
@@ -26,6 +27,8 @@ spec:
     spec:
       containers:
       - env:
+        - name: GIN_MODE
+          value: release
         - name: GITHUB_CLIENT_ID
           value: Iv1.4d121e96ec2e71a8
         - name: GITHUB_TOKEN
@@ -44,7 +47,7 @@ spec:
         - containerPort: 8080
         resources: {}
         volumeMounts:
-        - mountPath: /src/local
+        - mountPath: /local
           name: api-claim0
       restartPolicy: Always
       volumes:

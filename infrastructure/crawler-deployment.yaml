@@ -1,6 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  namespace: development
   annotations:
     kompose.cmd: kompose convert
     kompose.version: 1.19.0 ()
@@ -43,7 +44,7 @@ spec:
         image: kostarelo/discover-crawler
         name: crawler
         volumeMounts:
-        - mountPath: /src/local
+        - mountPath: /local
           name: crawler-claim0
         resources: {}
       restartPolicy: Always

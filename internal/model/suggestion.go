@@ -42,19 +42,21 @@ const (
 
 // SuggestionItem is a single repository suggestion
 type SuggestionItem struct {
+	// gorm.Model
 	ID           uint `gorm:"primary_key"`
-	SuggestionID uint
 	Type         string
 	Value        string
+	SuggestionID uint
 	Reason       string
 }
 
 // Suggestion contains a list of suggestions
 type Suggestion struct {
-	ID       uint   `gorm:"primary_key"`
-	UserID   string `gorm:"index:user_id"`
+	// gorm.Model
+	ID       uint `gorm:"primary_key"`
+	UserID   User
 	DateTime time.Time
-	Items    []SuggestionItem `gorm:"foreignkey:SuggestionID"`
+	Items    []SuggestionItem
 }
 
 func (s *Suggestion) ToHTML() (string, error) {

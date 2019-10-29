@@ -2,7 +2,7 @@ version: "3"
 
 services:
   crawler:
-    container_name: crawler
+    container_name: discover_crawler
     build:
       context: ./
       dockerfile: Dockerfile.local
@@ -21,9 +21,10 @@ services:
     depends_on:
       - neo
       - redis
+      - postgres
 
   extraction:
-    container_name: extraction
+    container_name: discover_extraction
     build:
       context: ./
       dockerfile: Dockerfile.local
@@ -41,9 +42,10 @@ services:
     depends_on:
       - neo
       - redis
+      - postgres
 
   api:
-    container_name: api
+    container_name: discover_api
     build:
       context: ./
       dockerfile: Dockerfile.local
@@ -57,6 +59,8 @@ services:
       - 8080:8080
     volumes:
       - ./local:/src/local
+    depends_on:
+      - postgres
 
   redis:
     container_name: discover_redis
@@ -70,6 +74,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      
   neo:
     container_name: discover_neo
     image: neo4j:3.0
@@ -89,6 +94,21 @@ services:
       - ./local/neo4j/logs:/logs
     healthcheck:
       test: curl -w %{http_code} -s --output /dev/null localhost:7474
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres:
+    container_name: discover_postgres
+    image: postgres
+    restart: always
+    env_file:
+      - .env
+    environment: 
+      - POSTGRES_DB=discover
+      - POSTGRES_USER=postgres
+    healthcheck:
+      test: curl -w %{http_code} -s --output /dev/null localhost:5432
       interval: 5s
       timeout: 5s
       retries: 5

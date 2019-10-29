@@ -291,7 +291,7 @@ func (neo *Neo) GetUserSuggestion(user *model.User) (*model.Suggestion, error) {
 	}
 
 	return &model.Suggestion{
-		UserID:   user.Name,
+		UserID:   *user,
 		DateTime: time.Now(),
 		Items:    suggestions,
 	}, nil

@@ -75,6 +75,7 @@ var (
 func neoToNeoObject(m interface{}) string {
 	bytes, _ := json.Marshal(m)
 	json := string(bytes)
+	json = strings.Replace(json, `"ID"`, "`ID`", -1)
 	json = strings.Replace(json, `"user"`, "`user`", -1)
 	json = strings.Replace(json, `"repository"`, "`repository`", -1)
 	json = strings.Replace(json, `"starredAt"`, "`starredAt`", -1)

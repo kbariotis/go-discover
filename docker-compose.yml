@@ -87,6 +87,8 @@ services:
       - NEO4J_dbms_connector_http_listen__address=0.0.0.0:7474
       - NEO4J_dbms_connector_https_listen__address=0.0.0.0:6477
       - NEO4J_dbms_connector_bolt_listen__address=0.0.0.0:7687
+      - NEO4J_dbms_memory_heap_initial__size=2048
+      - NEO4J_dbms_memory_heap_max__size=2048
     volumes:
       - ./local/neo4j/plugins:/plugins
       - ./local/neo4j/data:/data
@@ -107,6 +109,8 @@ services:
     environment: 
       - POSTGRES_DB=discover
       - POSTGRES_USER=postgres
+    volumes:
+      - ./local/db:/var/lib/postgresql/data
     healthcheck:
       test: curl -w %{http_code} -s --output /dev/null localhost:5432
       interval: 5s

@@ -43,6 +43,11 @@ spec:
             secretKeyRef:
               name: extraction-secret
               key: MAILGUN_APIKEY
+        - name: SUGGESTION_STORE_PWD
+          valueFrom:
+            secretKeyRef:
+              name: api-secret
+              key: SUGGESTION_STORE_PWD
         image: kostarelo/discover-extraction
         name: extraction
         resources: {}
@@ -57,8 +62,11 @@ spec:
       initContainers:
       - name: init-redis
         image: busybox
-        command: ['sh', '-c', 'until nc -z redis:6379; do echo waiting for redis; sleep 2; done;']  
+        command: ['sh', '-c', 'until nc -z redis:6379; do echo waiting for redis; sleep 2; done;']
+      - name: init-postgres
+        image: busybox
+        command: ['sh', '-c', 'until nc -z postgres:5432; do echo waiting for postgres; sleep 2; done;']
       - name: init-neo
         image: busybox
-        command: ['sh', '-c', 'until nc -z neo:7474; do echo waiting for neo; sleep 2; done;']  
+        command: ['sh', '-c', 'until nc -z neo:7474; do echo waiting for neo; sleep 2; done;']
 status: {}

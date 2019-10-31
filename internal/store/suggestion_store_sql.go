@@ -75,16 +75,17 @@ func (s *SuggestionSQL) GetSuggestion(id uint) (*model.Suggestion, error) {
 	suggestion := &model.Suggestion{}
 	res := s.db.
 		Preload("Items").
-		First(suggestion, model.Suggestion{ID: id})
+		First(suggestion, id)
 	return suggestion, errors.Wrap(res.Error, "could not get suggestion")
 }
 
 // GetLatestSuggestionForUser -
-func (s *SuggestionSQL) GetLatestSuggestionForUser(Name string) (*model.Suggestion, error) {
+func (s *SuggestionSQL) GetLatestSuggestionForUser(id uint) (*model.Suggestion, error) {
 	suggestion := &model.Suggestion{}
 	res := s.db.
 		Preload("Items").
-		First(suggestion, model.Suggestion{UserID: Name})
+		Where("UserID = ?", id).
+		First(suggestion)
 	return suggestion, errors.Wrap(res.Error, "could not get suggestion for user")
 }
 

@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: development
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: api
+  name: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: api
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.19.0 ()
+      creationTimestamp: null
+      labels:
+        io.kompose.service: api
+    spec:
+      containers:
+      - env:
+        - name: GIN_MODE
+          value: release
+        - name: GITHUB_CLIENT_ID
+          value: Iv1.4d121e96ec2e71a8
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: api-secret
+              key: GITHUB_TOKEN
+        - name: GITHUB_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: api-secret
+              key: GITHUB_CLIENT_SECRET
+        - name: SUGGESTION_STORE_PWD
+          valueFrom:
+            secretKeyRef:
+              name: api-secret
+              key: SUGGESTION_STORE_PWD
+        image: kostarelo/discover-api
+        name: api
+        ports:
+        - containerPort: 8080
+        resources: {}
+        volumeMounts:
+        - mountPath: /local
+          name: api-claim0
+      restartPolicy: Always
+      volumes:
+      - name: api-claim0
+        persistentVolumeClaim:
+          claimName: api-claim0
+      initContainers:
+      - name: init-postgres
+        image: busybox
+        command: ['sh', '-c', 'until nc -z postgres:5432; do echo waiting for postgres; sleep 2; done;']
+status: {}

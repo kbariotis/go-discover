@@ -145,7 +145,7 @@ func (api *API) HandleGetUserSuggestions(c *gin.Context) {
 		return
 	}
 
-	suggestion, err := api.suggestionStore.GetLatestSuggestionForUser(user.Name)
+	suggestion, err := api.suggestionStore.GetLatestSuggestionForUser(user.ID)
 	if err != nil {
 		logger.WithError(err).Warn("Could not get suggestions")
 		c.JSON(200, gin.H{

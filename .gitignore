@@ -27,3 +27,5 @@ local/
 .env
 bin/*
 api/proto/includes
+
+*-secret.yaml

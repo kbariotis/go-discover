@@ -9,8 +9,12 @@ import (
 // Config contains various configuration settings
 type Config struct {
 	LogLevel             string `env:"LOG_LEVEL" envDefault:"info"`
-	SuggestionsStoreType string `env:"SUGGESTION_STORE_TYPE" envDefault:"sqlite3"`
-	SuggestionsStoreDSN  string `env:"SUGGESTION_STORE_DSN" envDefault:"./local/suggestions.db"`
+	SuggestionsStoreType string `env:"SUGGESTION_STORE_TYPE" envDefault:"postgres"`
+	SuggestionsStoreHost string `env:"SUGGESTION_STORE_HOST" envDefault:"postgres"`
+	SuggestionsStorePort string `env:"SUGGESTION_STORE_PORT" envDefault:"5432"`
+	SuggestionsStoreUser string `env:"SUGGESTION_STORE_USER" envDefault:"postgres"`
+	SuggestionsStoreDb   string `env:"SUGGESTION_STORE_DB" envDefault:"discover"`
+	SuggestionsStorePwd  string `env:"SUGGESTION_STORE_PWD"`
 	QueueStoreDir        string `env:"QUEUE_STORE_DIR" envDefault:"./local/queues" envExpand:"true"`
 	NeoHost              string `env:"NEO4J_HOST" envDefault:"http://localhost:7474/db/data"`
 	RedisHost            string `env:"REDIS_HOST" envDefault:"localhost:6379"`

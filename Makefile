@@ -1,5 +1,5 @@
 MODULE			:= github.com/kbariotis/go-discover
-LDFLAGS		:= -w -s
+LDFLAGS		:= -linkmode external -extldflags "-static"
 GOBIN			:= $(CURDIR)/bin
 PATH			:= $(GOBIN):$(PATH)
 CRAWLER_NAME		:= crawler
@@ -69,7 +69,7 @@ build-crawler: LDFLAGS += -X $(MODULE)/internal/version.GitSHA=${GIT_SHA}
 build-crawler: LDFLAGS += -X $(MODULE)/internal/version.ServiceName=${CRAWLER_NAME}
 build-crawler:
 	$(info building binary to bin/$(CRAWLER_NAME))
-	@CGO_ENABLED=0 go build -o bin/$(CRAWLER_NAME) -installsuffix cgo -ldflags '$(LDFLAGS)' ./cmd/$(CRAWLER_NAME)
+	@CGO_ENABLED=1 GOOS=linux go build -o bin/$(CRAWLER_NAME) -ldflags '$(LDFLAGS)' ./cmd/$(CRAWLER_NAME)
 
 .PHONY: build-extraction
 build-extraction: deps
@@ -79,7 +79,7 @@ build-extraction: LDFLAGS += -X $(MODULE)/internal/version.GitSHA=${GIT_SHA}
 build-extraction: LDFLAGS += -X $(MODULE)/internal/version.ServiceName=${EXTRACTION_NAME}
 build-extraction:
 	$(info building binary to bin/$(EXTRACTION_NAME))
-	@CGO_ENABLED=0 go build -o bin/$(EXTRACTION_NAME) -installsuffix cgo -ldflags '$(LDFLAGS)' ./cmd/$(EXTRACTION_NAME)
+	@CGO_ENABLED=1 GOOS=linux go build -o bin/$(EXTRACTION_NAME) -ldflags '$(LDFLAGS)' ./cmd/$(EXTRACTION_NAME)
 
 # Builds binaries
 .PHONY: build-api
@@ -90,7 +90,7 @@ build-api: LDFLAGS += -X $(MODULE)/internal/version.GitSHA=${GIT_SHA}
 build-api: LDFLAGS += -X $(MODULE)/internal/version.ServiceName=${API_NAME}
 build-api:
 	$(info building binary to bin/$(API_NAME))
-	@CGO_ENABLED=0 go build -o bin/$(API_NAME) -installsuffix cgo -ldflags '$(LDFLAGS)' ./cmd/$(API_NAME)
+	@CGO_ENABLED=1 GOOS=linux go build -o bin/$(API_NAME) -ldflags '$(LDFLAGS)' ./cmd/$(API_NAME)
 
 # Builds and runs the binary with debug logging
 .PHONY: run-crawler

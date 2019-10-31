@@ -12,6 +12,6 @@ type SuggestionStore interface {
 	GetUser(string) (*model.User, error)
 	PutUser(*model.User) error
 	GetSuggestion(uint) (*model.Suggestion, error)
-	GetLatestSuggestionForUser(Name string) (*model.Suggestion, error)
+	GetLatestSuggestionForUser(id uint) (*model.Suggestion, error)
 	PutSuggestion(*model.Suggestion) error
 }

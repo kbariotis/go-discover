@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: development
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: neo
+  name: neo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: neo
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.19.0 ()
+      creationTimestamp: null
+      labels:
+        io.kompose.service: neo
+    spec:
+      containers:
+      - env:
+        - name: NEO4J_ACCEPT_LICENSE_AGREEMENT
+          value: "yes"
+        - name: NEO4J_dbms_connector_bolt_listen__address
+          value: 0.0.0.0:7687
+        - name: NEO4J_dbms_connector_http_listen__address
+          value: 0.0.0.0:7474
+        - name: NEO4J_dbms_connector_https_listen__address
+          value: 0.0.0.0:6477
+        - name: NEO4J_AUTH
+          valueFrom:
+            secretKeyRef:
+              name: neo-secret
+              key: NEO4J_AUTH
+        image: neo4j:3.0
+        name: discover-neo
+        command:
+          - "/bin/bash"
+          - "-ecx"
+          - |
+            export NEO4J_dbms_connectors_default__advertised__address=$(hostname -f)
+            export NEO4J_causal__clustering_discovery__advertised__address=$(hostname -f):5000
+            export NEO4J_causal__clustering_transaction__advertised__address=$(hostname -f):6000
+            export NEO4J_causal__clustering_raft__advertised__address=$(hostname -f):7000
+            exec /docker-entrypoint.sh "neo4j"
+        ports:
+        - containerPort: 7474
+          name: browser
+        - containerPort: 6477
+        - containerPort: 7687
+          name: bolt
+        resources: {}
+        volumeMounts:
+        - mountPath: /plugins
+          name: neo-claim0
+        - mountPath: /data
+          name: neo-claim1
+        - mountPath: /import
+          name: neo-claim2
+        - mountPath: /logs
+          name: neo-claim3
+      restartPolicy: Always
+      volumes:
+      - name: neo-claim0
+        persistentVolumeClaim:
+          claimName: neo-claim0
+      - name: neo-claim1
+        persistentVolumeClaim:
+          claimName: neo-claim1
+      - name: neo-claim2
+        persistentVolumeClaim:
+          claimName: neo-claim2
+      - name: neo-claim3
+        persistentVolumeClaim:
+          claimName: neo-claim3
+status: {}

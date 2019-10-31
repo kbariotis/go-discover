@@ -60,7 +60,7 @@ func (g *Github) GetUserStars(ctx context.Context, name string) ([]model.Starred
 			Debug("got stars")
 
 		for _, repo := range moreRepos {
-			stars = append(stars, model.StarredRepository{repo.Repository.GetFullName(), repo.StarredAt.Unix()})
+			stars = append(stars, model.StarredRepository{Repository: repo.Repository.GetFullName(), StarredAt: repo.StarredAt.Unix()})
 		}
 
 		currentPage = res.NextPage

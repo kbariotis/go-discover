@@ -12,7 +12,7 @@ The crawler is the part that monitors GitHub activity. It constantly crawls the 
 
 __API__
 
-The API is serving our website.
+The API is serving our website. Currently is serving HTML as well. (@TODO move HTML/landing page out of the API in its own container)
 
 __Extraction (Better name pending?!)__
 
@@ -30,29 +30,22 @@ This project is using:
 * Mailgun for emails
 * GitHub duh?
 
-## Usage
-
-Consult the table below and export your preferences as environment variables.
-
-```sh
-export GITHUB_TOKEN=...
-make run-crawler
-make run-extraction
-make run-api
-```
-
-__Available env vars:__
+## Configuration
 
 | Variable | Description | Required | Default |
 | --- | --- | --- | --- |
 | `GITHUB_TOKEN` | GitHub token for the crawler | yes | |
 | `LOG_LEVEL` | Log level: `error`, `info`, `debug`, `trace` | no | `info` |
-| `QUEUE_STORE_DIR` | path for `dqueue` persistence; defaults to `~/go-discover`
-| `SUGGESTION_STORE_TYPE` | | no | sqlite3
-| `SUGGESTION_STORE_DSN` |  | no | ./local/suggestions.db
-| `NEO4J_HOST` | | no | http://localhost:7474/db/data
-| `REDIS_HOST` | | no | localhost:6379
-| `API_BIND_ADDRESS` | | no | 0.0.0.0:8080
+| `QUEUE_STORE_DIR` | | no | `~/go-discover` |
+| `SUGGESTION_STORE_TYPE` | | no | postgres |
+| `SUGGESTION_STORE_HOST` | | no | postgres |
+| `SUGGESTION_STORE_PORT` | | no | 5432 |
+| `SUGGESTION_STORE_USER` | | no | postgres |
+| `SUGGESTION_STORE_DB` | | no | discover |
+| `SUGGESTION_STORE_PWD` | | yes |
+| `NEO4J_HOST` | | no | http://localhost:7474/db/data |
+| `REDIS_HOST` | | no | localhost:6379 |
+| `API_BIND_ADDRESS` | | no | 0.0.0.0:8080 |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth secret | yes | |
 | `GITHUB_CLIENT_ID` | GitHub OAuth ID | yes | |
 | `GITHUB_CALLBACK_URL` | GitHub OAuth callback URL | no | http://localhost:8080/github/callback |
@@ -64,27 +57,41 @@ __Available env vars:__
 
 ## Development
 
-```sh
-make tools
-make deps
-make lint
-make test
-```
+For local development we use `docker-compose`.
+
+**Make sure that you have a valid `.env` file in place.**
+
+Start everything up:
+
+`> docker-compose up`
+
+From there you can go to `localhost:8080` to login with GitHub. Next time `crawler` runs, will pick up your registered user and start crawling in your behalf.
 
 __Available make targets:__
 
 * `make deps` - installs dependencies
 * `make tools` - installs required tools under `./bin`
 * `make lint` - lints package using `./bin/golangci-lint`
-* `make build-api` - builds `cmd/api` as `./bin/api`
-* `make build-crawler` - builds `cmd/crawler` as `./bin/crawler`
-* `make build-extraction` - builds `cmd/extraction` as `./bin/extraction`
+* `make build-api` - builds `cmd/api` as `./bin/api` _(used for building for production only)_
+* `make build-crawler` - builds `cmd/crawler` as `./bin/crawler` _(used for building for production only)_
+* `make build-extraction` - builds `cmd/extraction` as `./bin/extraction` _(used for building for production only)_
 * `make run-api` - builds and runs `cmd/api`
 * `make run-crawler` - builds and runs `cmd/crawler`
 * `make run-extraction` - builds and runs `cmd/extraction`
 * `make test` - tests package
 * `make clean` - removes temp files
 
+## Going to production
+
+Discover is running on a Kubernetes cluster and the configuration files live under [infrastructure](https://github.com/kbariotis/go-discover/tree/master/infrastructure).
+
+To build any container of the services use the corresponding Dockerfile under root.
+
+Example building `api`:
+
+`> docker build -t kostarelo/discover-api -f Dockerfile.api .`
+
+and push to the registry. (@TODO add service to automatically fetch new versions of the containers running.)
 
 ## Contribute
 

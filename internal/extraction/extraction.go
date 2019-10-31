@@ -122,10 +122,7 @@ func (e *Extraction) Start(ctx context.Context) error {
 	go func() {
 		logger.Info("starting to pop tasks from suggestionExtractionTasks")
 		for {
-			task, err := e.suggestionExtractionQueue.Pop()
-			if err != nil {
-				logger.WithError(err).Fatal("could not pop from suggestionExtractionQueue")
-			}
+			task, _ := e.suggestionExtractionQueue.Pop()
 			if task == nil {
 				time.Sleep(time.Second)
 				continue

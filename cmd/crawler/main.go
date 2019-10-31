@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
-	_ "github.com/jinzhu/gorm/dialects/sqlite" // required for sqlite
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 
 	"github.com/kbariotis/go-discover/internal/cache"
 	"github.com/kbariotis/go-discover/internal/config"
@@ -115,7 +115,7 @@ func main() {
 	// connect to suggestions store db
 	db, err := gorm.Open(
 		cfg.SuggestionsStoreType,
-		cfg.SuggestionsStoreDSN,
+		"host="+cfg.SuggestionsStoreHost+" port="+cfg.SuggestionsStorePort+" user="+cfg.SuggestionsStoreUser+" dbname="+cfg.SuggestionsStoreDb+" password="+cfg.SuggestionsStorePwd+" sslmode=disable",
 	)
 	if err != nil {
 		logger.WithError(err).Fatal("could not connect to db")

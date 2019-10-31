@@ -12,7 +12,7 @@ require (
 	github.com/golangci/golangci-lint v1.16.0
 	github.com/google/go-github/v25 v25.0.2
 	github.com/google/uuid v1.1.1 // indirect
-	github.com/jinzhu/gorm v1.9.8
+	github.com/jinzhu/gorm v1.9.11
 	github.com/jmcvetta/randutil v0.0.0-20150817122601-2bb1b664bcff // indirect
 	github.com/joncrlsn/dque v0.0.0-20190104233530-ceded79bccfe
 	github.com/mailgun/mailgun-go/v3 v3.6.0
@@ -27,5 +27,6 @@ require (
 	github.com/stretchr/testify v1.3.0
 	golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421
 	golang.org/x/sys v0.0.0-20190322080309-f49334f85ddc // indirect
+	golang.org/x/tools v0.0.0-20191029041327-9cc4af7d6b2c // indirect
 	gopkg.in/jmcvetta/napping.v3 v3.2.0 // indirect
 )

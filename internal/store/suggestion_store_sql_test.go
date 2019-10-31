@@ -66,7 +66,7 @@ func TestSuggestionSQL_Suggestions(t *testing.T) {
 	// connect to db
 	db := getDB(t)
 	suggestion := &model.Suggestion{
-		UserID:   "foo",
+		UserID:   model.User{Name: "kbariotis"},
 		DateTime: time.Now().Round(time.Second).UTC(),
 		Items: []model.SuggestionItem{
 			{

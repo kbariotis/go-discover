@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: development
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: extraction
+  name: extraction
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: extraction
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.19.0 ()
+      creationTimestamp: null
+      labels:
+        io.kompose.service: extraction
+    spec:
+      containers:
+      - env:
+        - name: MAILGUN_DOMAIN
+          value: bariotis.com
+        - name: QUEUE_STORE_DIR
+          value: ./local
+        - name: NEO4J_HOST
+          valueFrom:
+            secretKeyRef:
+              name: crawler-secret
+              key: NEO4J_HOST
+        - name: MAIL_SENDER_ADDRESS
+          value: kostas@bariotis.com
+        - name: MAILGUN_APIKEY
+          valueFrom:
+            secretKeyRef:
+              name: extraction-secret
+              key: MAILGUN_APIKEY
+        - name: SUGGESTION_STORE_PWD
+          valueFrom:
+            secretKeyRef:
+              name: api-secret
+              key: SUGGESTION_STORE_PWD
+        image: kostarelo/discover-extraction
+        name: extraction
+        resources: {}
+        volumeMounts:
+        - mountPath: /local
+          name: extraction-claim0
+      restartPolicy: Always
+      volumes:
+      - name: extraction-claim0
+        persistentVolumeClaim:
+          claimName: extraction-claim0
+      initContainers:
+      - name: init-redis
+        image: busybox
+        command: ['sh', '-c', 'until nc -z redis:6379; do echo waiting for redis; sleep 2; done;']
+      - name: init-postgres
+        image: busybox
+        command: ['sh', '-c', 'until nc -z postgres:5432; do echo waiting for postgres; sleep 2; done;']
+      - name: init-neo
+        image: busybox
+        command: ['sh', '-c', 'until nc -z neo:7474; do echo waiting for neo; sleep 2; done;']
+status: {}
